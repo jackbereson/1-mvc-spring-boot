@@ -1,4 +1,4 @@
-package java.com.mvcCore.model;
+package com.mvcCore.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

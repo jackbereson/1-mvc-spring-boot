@@ -1,4 +1,4 @@
-package java.com.mvcCore.controller;
+package com.mvcCore.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

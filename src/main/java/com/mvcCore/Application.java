@@ -1,4 +1,4 @@
-package java.com.mvcCore;
+package com.mvcCore;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
