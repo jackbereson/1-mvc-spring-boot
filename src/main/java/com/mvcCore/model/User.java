@@ -14,13 +14,16 @@ import lombok.NoArgsConstructor;
 @Builder
 public class User extends BaseEntity {
     
-    @Column(unique = true, nullable = false)
+    @Column(unique = true)
+    private String username;
+    
+    @Column(unique = true)
     private String email;
     
-    @Column(nullable = false)
     private String fullName;
     
-    @Column(nullable = false)
+    private String phoneNumber;
+    
     private String password;
     
     @Column(columnDefinition = "boolean default true")
@@ -28,7 +31,7 @@ public class User extends BaseEntity {
     private Boolean isActive = true;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "varchar(20) default 'USER'")
+    @Column(columnDefinition = "varchar(20) default 'USER'")
     @Builder.Default
     private Role role = Role.USER;
 }

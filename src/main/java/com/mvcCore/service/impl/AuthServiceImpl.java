@@ -27,7 +27,7 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
             return AuthResponse.builder()
                     .message("Email already exists")
                     .build();
@@ -55,8 +55,19 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElse(null);
+        User user = null;
+        
+        // Try login by email first
+        if (request.getEmail() != null) {
+            user = userRepository.findByEmail(request.getEmail())
+                    .orElse(null);
+        }
+        
+        // If not found and username provided, try by email using username as hint
+        if (user == null && request.getUsername() != null) {
+            user = userRepository.findByEmail(request.getUsername())
+                    .orElse(null);
+        }
         
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return AuthResponse.builder()

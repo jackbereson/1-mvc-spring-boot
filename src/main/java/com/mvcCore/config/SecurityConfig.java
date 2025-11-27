@@ -32,9 +32,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 new AntPathRequestMatcher("/api/auth/**"),
+                                new AntPathRequestMatcher("/api/v1/auth/**"),
                                 new AntPathRequestMatcher("/api/v1/health/**"),
                                 new AntPathRequestMatcher("/h2-console/**")
                         ).permitAll()

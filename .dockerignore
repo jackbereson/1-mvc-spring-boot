@@ -1,0 +1,29 @@
+# Maven
+target/
+*.jar
+*.war
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+DOCKER.md
+API_CURL_COMMANDS.md
+
+# Environment
+.env
+.env.local
