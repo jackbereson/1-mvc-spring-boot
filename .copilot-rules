@@ -1,0 +1,163 @@
+# ===============================================
+# COPILOT SYSTEM RULES — SPRING BOOT MVC REFACTOR
+# Version: Enterprise Clean Architecture
+# ===============================================
+
+You MUST rewrite and refactor code following these architectural rules:
+
+# 1) CONTROLLER RULES
+- Controller must contain NO business logic.
+- Controller only:
+  ✔ receives request
+  ✔ validates input (@Valid + Bean Validation)
+  ✔ calls service layer
+  ✔ returns DTO response
+- Never expose Entity to client.
+- Method names: create(), update(), delete(), getById(), list().
+
+# 2) SERVICE RULES
+- Service contains ALL business logic.
+- Must create an interface + implementation pattern:
+  - UserService.java
+  - UserServiceImpl.java
+- Never return Entity to controller — always return DTO.
+- Apply @Transactional at service layer.
+- No @Transactional on controllers.
+
+# 3) REPOSITORY RULES
+- Repository ONLY interacts with database.
+- No business logic in repository.
+- File name: UserRepository extends JpaRepository<UserEntity, Long>.
+- Custom queries use @Query NOT embedded logic.
+
+# 4) ENTITY RULES
+- Entity represents database table only.
+- No business logic.
+- No DTO annotation.
+- Use Lombok carefully: @Getter @Setter @Builder, avoid @Data.
+
+# 5) DTO RULES
+- Create 3 DTOs per module:
+  - Request DTO (CreateUserRequest, UpdateUserRequest)
+  - Response DTO (UserDto)
+  - Optional: Filter DTO (UserFilter)
+- Do NOT leak database structure into DTO.
+- DTO fields must be camelCase, validated.
+
+# 6) MAPPING RULES
+- Always map Entity <-> DTO using MapStruct.
+- If project doesn't have MapStruct, Copilot must generate mapping manually with a Mapper class.
+- No mapping inside controller.
+
+# 7) EXCEPTION HANDLING
+- Create a global exception handler using @ControllerAdvice.
+- Return unified JSON error format:
+  {
+    "code": "ERROR_CODE",
+    "message": "Readable message",
+    "details": {}
+  }
+- Replace all try/catch in controllers with custom business exceptions.
+
+# 8) VALIDATION RULES
+- All request payload classes MUST use:
+  - @NotBlank
+  - @Email
+  - @Size
+  - @NotNull
+- Controller methods must include @Valid.
+- Error messages must be friendly, not exposing system internals.
+
+# 9) LOGGING RULES
+- Replace all System.out.println with SLF4J Logger.
+- Logging levels:
+  - info → lifecycle
+  - debug → detail logs
+  - warn → unusual but not failing
+  - error → exceptions
+
+# 10) CONFIGURATION RULES
+- NEVER hardcode config values.
+- Store all config in application.yml.
+- Use @ConfigurationProperties for grouped configs.
+- Environment-specific configs:
+  - application-dev.yml
+  - application-prod.yml
+
+# 11) API RESPONSE RULES
+- Never return List directly.
+- Always wrap response:
+  - ApiResponse<T>
+  - Or Page<T> for pagination.
+- Use Pageable for pagination APIs.
+
+# 12) REFACTORING RULES
+When improving code, you MUST:
+- Remove duplicate logic.
+- Extract reusable functions.
+- Apply SOLID principles.
+- Replace magic numbers with constants.
+- Add meaningful method names.
+- Split large functions into smaller units.
+- Replace deeply nested conditions with guards.
+
+# 13) NAMING CONVENTIONS
+- ClassName: PascalCase
+- methodName: camelCase
+- constants: UPPER_SNAKE_CASE
+- package.name: lowercase
+- DTO suffix required: *Dto, *Request, *Response
+- Entity suffix required: *Entity
+
+# 14) TESTING RULES
+- Add unit tests using Mockito for service layer.
+- Add integration tests for controller using @SpringBootTest + MockMvc.
+
+# 15) CODE CLEANLINESS
+- Remove unused imports.
+- Remove commented-out code.
+- Remove redundant annotations.
+- Replace constructors with @RequiredArgsConstructor.
+- Format code using standard Java formatting.
+
+# 16) PROJECT STRUCTURE ENFORCEMENT
+Enforce the following structure:
+
+com.project
+ ├── controller
+ ├── service
+ │     ├── impl
+ ├── repository
+ ├── entity
+ ├── dto
+ │     ├── request
+ │     ├── response
+ ├── mapper
+ ├── config
+ ├── exception
+ ├── util
+
+# 17) ASYNC RULES (optional)
+- Use @Async only for non-critical tasks.
+- Return CompletableFuture<T>.
+- Provide thread pool config.
+
+# 18) SECURITY RULES (if exist)
+- Never expose password fields.
+- Always hash passwords using BCrypt.
+- No authentication logic in controller.
+- JWT tokens stored in configuration.
+
+# 19) PERFORMANCE RULES
+- Use @Cacheable for frequently fetched read-only data.
+- Use pagination for large list queries.
+- Do not fetch full entity graph unless necessary (avoid eager loading).
+
+# 20) DATABASE RULES
+- Use long type for primary keys.
+- Enable schema validation: spring.jpa.hibernate.ddl-auto=validate.
+- Keep migration files in Flyway or Liquibase folder.
+
+# ===============================================
+# APPLY ALL RULES AUTOMATICALLY FOR EVERY REFACTOR
+# ===============================================

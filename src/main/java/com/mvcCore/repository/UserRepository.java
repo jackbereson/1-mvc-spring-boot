@@ -1,6 +1,7 @@
 package com.mvcCore.repository;
 
 import com.mvcCore.model.User;
+import com.mvcCore.model.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;
@@ -9,4 +10,5 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
+    Optional<User> findByRole(Role role);
 }

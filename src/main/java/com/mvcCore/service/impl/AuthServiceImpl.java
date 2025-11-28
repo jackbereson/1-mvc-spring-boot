@@ -2,6 +2,7 @@ package com.mvcCore.service.impl;
 
 import com.mvcCore.dto.AuthResponse;
 import com.mvcCore.dto.LoginRequest;
+import com.mvcCore.dto.AdminLoginRequest;
 import com.mvcCore.dto.RegisterRequest;
 import com.mvcCore.dto.UserDto;
 import com.mvcCore.model.Role;
@@ -10,6 +11,7 @@ import com.mvcCore.repository.UserRepository;
 import com.mvcCore.service.AuthService;
 import com.mvcCore.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,12 @@ public class AuthServiceImpl implements AuthService {
     
     @Autowired
     private PasswordEncoder passwordEncoder;
+    
+    @Value("${admin.username}")
+    private String adminUsername;
+    
+    @Value("${admin.password}")
+    private String adminPassword;
     
     @Override
     public AuthResponse register(RegisterRequest request) {
@@ -86,8 +94,37 @@ public class AuthServiceImpl implements AuthService {
     }
     
     @Override
+    public AuthResponse adminLogin(AdminLoginRequest request) {
+        if (!adminUsername.equals(request.getUsername()) || !adminPassword.equals(request.getPassword())) {
+            return AuthResponse.builder()
+                    .message("Invalid admin credentials")
+                    .build();
+        }
+        
+        String token = jwtUtil.generateToken("admin_" + adminUsername);
+        
+        return AuthResponse.builder()
+                .token(token)
+                .email("admin@system.local")
+                .fullName("Admin")
+                .message("Admin login successfully")
+                .build();
+    }
+    
+    @Override
     public UserDto getMe(String token) {
         String email = jwtUtil.extractUsername(token);
+        
+        // Check if it's an admin token
+        if (email.startsWith("admin_")) {
+            return UserDto.builder()
+                    .email("admin@system.local")
+                    .fullName("Admin")
+                    .role(Role.ADMIN)
+                    .isActive(true)
+                    .build();
+        }
+        
         User user = userRepository.findByEmail(email)
                 .orElse(null);
         
@@ -106,3 +143,4 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 }
+

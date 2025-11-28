@@ -3,6 +3,7 @@ package com.mvcCore.controller;
 import com.mvcCore.dto.ApiResponse;
 import com.mvcCore.dto.AuthResponse;
 import com.mvcCore.dto.LoginRequest;
+import com.mvcCore.dto.AdminLoginRequest;
 import com.mvcCore.dto.RegisterRequest;
 import com.mvcCore.dto.UserDto;
 import com.mvcCore.service.AuthService;
@@ -35,6 +36,15 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
+        if (response.getToken() != null) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+    
+    @PostMapping("/admin/login")
+    public ResponseEntity<?> adminLogin(@RequestBody AdminLoginRequest request) {
+        AuthResponse response = authService.adminLogin(request);
         if (response.getToken() != null) {
             return ResponseEntity.ok(response);
         }
