@@ -2,7 +2,6 @@ package com.mvcCore.util;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,21 +24,23 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
     
-    public String generateToken(String username) {
-        log.debug("Generating JWT token for username: {}", username);
+    public String generateToken(String username, String role) {
         String token = Jwts.builder()
                 .subject(username)
+                .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .signWith(getSigningKey())
                 .compact();
-        log.debug("JWT token generated successfully");
         return token;
     }
     
     public String extractUsername(String token) {
-        log.debug("Extracting username from token");
         return getClaims(token).getSubject();
+    }
+    
+    public String extractRole(String token) {
+        return getClaims(token).get("role", String.class);
     }
     
     public boolean validateToken(String token) {
@@ -48,7 +49,6 @@ public class JwtUtil {
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(token);
-            log.debug("JWT token is valid");
             return true;
         } catch (Exception e) {
             log.warn("JWT token validation failed: {}", e.getMessage());

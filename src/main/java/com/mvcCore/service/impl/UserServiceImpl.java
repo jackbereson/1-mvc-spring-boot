@@ -28,7 +28,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
-        log.debug("Fetching all users");
         return userRepository.findAll().stream()
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());
@@ -37,7 +36,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserDto> getAllUsers(Pageable pageable) {
-        log.debug("Fetching users with pagination: {}", pageable);
         return userRepository.findAll(pageable)
                 .map(userMapper::toDto);
     }
@@ -45,7 +43,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
-        log.debug("Fetching user with id: {}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("User not found with id: {}", id);
@@ -56,7 +53,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto updateUser(Long id, UserDto userDto) {
-        log.debug("Updating user with id: {}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("User not found with id: {}", id);
@@ -77,7 +73,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long id) {
-        log.debug("Deleting user with id: {}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("User not found with id: {}", id);

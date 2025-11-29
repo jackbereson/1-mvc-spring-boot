@@ -39,7 +39,6 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResponse register(RegisterRequest request) {
-        log.debug("Attempting to register user with email: {}", request.getEmail());
         
         if (userRepository.existsByEmail(request.getEmail())) {
             log.warn("Registration failed: email already exists - {}", request.getEmail());
@@ -56,7 +55,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         
         userRepository.save(user);
-        String token = jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         
         log.info("User registered successfully: {}", user.getEmail());
         
@@ -70,7 +69,6 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResponse login(LoginRequest request) {
-        log.debug("Attempting to login user with email: {}", request.getEmail());
         
         User user = userRepository.findByEmail(request.getEmail())
                 .orElse(null);
@@ -80,7 +78,7 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Invalid email or password");
         }
         
-        String token = jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         log.info("User logged in successfully: {}", user.getEmail());
         
         return AuthResponse.builder()
@@ -93,14 +91,13 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResponse adminLogin(AdminLoginRequest request) {
-        log.debug("Attempting admin login with username: {}", request.getUsername());
         
         if (!adminUsername.equals(request.getUsername()) || !adminPassword.equals(request.getPassword())) {
             log.warn("Admin login failed: invalid credentials");
             throw new UnauthorizedException("Invalid admin credentials");
         }
         
-        String token = jwtUtil.generateToken("admin_" + adminUsername);
+        String token = jwtUtil.generateToken("admin_" + adminUsername, "ADMIN");
         log.info("Admin logged in successfully");
         
         return AuthResponse.builder()
@@ -114,7 +111,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public UserDto getMe(String token) {
-        log.debug("Fetching user info from token");
         String email = jwtUtil.extractUsername(token);
         
         // Check if it's an admin token
