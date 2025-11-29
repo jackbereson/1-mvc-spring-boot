@@ -6,71 +6,71 @@ import com.mvcCore.dto.LoginRequest;
 import com.mvcCore.dto.AdminLoginRequest;
 import com.mvcCore.dto.RegisterRequest;
 import com.mvcCore.dto.UserDto;
+import com.mvcCore.exception.UnauthorizedException;
 import com.mvcCore.service.AuthService;
 import com.mvcCore.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+@Slf4j
 public class AuthController {
     
-    @Autowired
-    private AuthService authService;
-    
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final AuthService authService;
+    private final JwtUtil jwtUtil;
     
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        log.debug("Register request for email: {}", request.getEmail());
         AuthResponse response = authService.register(request);
-        if (response.getToken() != null) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        log.debug("Login request for email: {}", request.getEmail());
         AuthResponse response = authService.login(request);
-        if (response.getToken() != null) {
-            return ResponseEntity.ok(response);
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        return ResponseEntity.ok(response);
     }
     
     @PostMapping("/admin/login")
-    public ResponseEntity<?> adminLogin(@RequestBody AdminLoginRequest request) {
+    public ResponseEntity<AuthResponse> adminLogin(@Valid @RequestBody AdminLoginRequest request) {
+        log.debug("Admin login request for username: {}", request.getUsername());
         AuthResponse response = authService.adminLogin(request);
-        if (response.getToken() != null) {
-            return ResponseEntity.ok(response);
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        return ResponseEntity.ok(response);
     }
     
     @GetMapping("/me")
-    public ResponseEntity<?> getMe(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<ApiResponse<UserDto>> getMe(@RequestHeader("Authorization") String authHeader) {
+        log.debug("Get me request");
+        
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse("Unauthorized", null, false));
+            log.warn("Unauthorized access attempt: missing or invalid auth header");
+            throw new UnauthorizedException("Missing or invalid authorization header");
         }
         
         String token = authHeader.substring(7);
         
         if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse("Invalid token", null, false));
+            log.warn("Unauthorized access attempt: invalid token");
+            throw new UnauthorizedException("Invalid or expired token");
         }
         
         UserDto user = authService.getMe(token);
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse("User not found", null, false));
+            log.error("User not found from token");
+            throw new UnauthorizedException("User not found");
         }
         
-        return ResponseEntity.ok(new ApiResponse("Success", user, true));
+        return ResponseEntity.ok(
+            new ApiResponse<>("User info retrieved successfully", user, true)
+        );
     }
 }

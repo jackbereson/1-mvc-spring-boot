@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,7 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
+@Slf4j
 public class JwtUtil {
     
     @Value("${jwt.secret:your-secret-key-change-this-in-production-environment}")
@@ -24,15 +26,19 @@ public class JwtUtil {
     }
     
     public String generateToken(String username) {
-        return Jwts.builder()
+        log.debug("Generating JWT token for username: {}", username);
+        String token = Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
+        log.debug("JWT token generated successfully");
+        return token;
     }
     
     public String extractUsername(String token) {
+        log.debug("Extracting username from token");
         return getClaims(token).getSubject();
     }
     
@@ -42,8 +48,10 @@ public class JwtUtil {
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(token);
+            log.debug("JWT token is valid");
             return true;
         } catch (Exception e) {
+            log.warn("JWT token validation failed: {}", e.getMessage());
             return false;
         }
     }

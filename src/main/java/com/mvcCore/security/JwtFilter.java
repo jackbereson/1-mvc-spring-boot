@@ -5,7 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -16,10 +17,11 @@ import java.io.IOException;
 import java.util.Collections;
 
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -28,7 +30,8 @@ public class JwtFilter extends OncePerRequestFilter {
         String requestPath = request.getRequestURI();
         
         // Skip JWT validation for public endpoints
-        if (requestPath.startsWith("/api/auth/") || requestPath.startsWith("/api/v1/auth/") || requestPath.startsWith("/api/v1/health") || requestPath.startsWith("/h2-console")) {
+        if (requestPath.startsWith("/api/auth/") || requestPath.startsWith("/api/v1/auth/") || 
+            requestPath.startsWith("/api/v1/health") || requestPath.startsWith("/h2-console")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -41,16 +44,19 @@ public class JwtFilter extends OncePerRequestFilter {
                 
                 if (jwtUtil.validateToken(token)) {
                     String username = jwtUtil.extractUsername(token);
+                    log.debug("JWT token validated for user: {}", username);
                     
                     UsernamePasswordAuthenticationToken authentication = 
                             new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    log.warn("JWT token validation failed");
                 }
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e);
+            log.error("Cannot set user authentication", e);
         }
         
         filterChain.doFilter(request, response);

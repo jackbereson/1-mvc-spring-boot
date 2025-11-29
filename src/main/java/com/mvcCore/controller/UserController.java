@@ -2,154 +2,70 @@ package com.mvcCore.controller;
 
 import com.mvcCore.dto.ApiResponse;
 import com.mvcCore.dto.UserDto;
-import com.mvcCore.model.User;
-import com.mvcCore.repository.UserRepository;
-import com.mvcCore.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import com.mvcCore.dto.request.UpdateUserRequest;
+import com.mvcCore.service.UserService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/users")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+@Slf4j
 public class UserController {
     
-    @Autowired
-    private UserRepository userRepository;
-    
-    @Autowired
-    private JwtUtil jwtUtil;
-    
-    private String extractToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
-        }
-        return null;
-    }
-    
-    private boolean isAuthorized(String token) {
-        return token != null && jwtUtil.validateToken(token);
-    }
+    private final UserService userService;
     
     // GET all users
     @GetMapping
-    public ResponseEntity<?> getAllUsers(@RequestHeader(value = "Authorization", required = false) String authHeader) {
-        String token = extractToken(authHeader);
-        if (!isAuthorized(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse("Unauthorized", null, false));
-        }
-        
-        List<UserDto> users = userRepository.findAll().stream()
-                .map(user -> UserDto.builder()
-                        .id(user.getId())
-                        .email(user.getEmail())
-                        .fullName(user.getFullName())
-                        .isActive(user.getIsActive())
-                        .role(user.getRole())
-                        .createdAt(user.getCreatedAt())
-                        .updatedAt(user.getUpdatedAt())
-                        .build())
-                .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(new ApiResponse("Success", users, true));
+    public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
+        log.debug("Get all users request");
+        List<UserDto> users = userService.getAllUsers();
+        return ResponseEntity.ok(
+            new ApiResponse<>("Users retrieved successfully", users, true)
+        );
     }
     
     // GET user by id
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(
-            @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        String token = extractToken(authHeader);
-        if (!isAuthorized(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse("Unauthorized", null, false));
-        }
-        
-        Optional<User> user = userRepository.findById(id);
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse("User not found", null, false));
-        }
-        
-        User u = user.get();
-        UserDto userDto = UserDto.builder()
-                .id(u.getId())
-                .email(u.getEmail())
-                .fullName(u.getFullName())
-                .isActive(u.getIsActive())
-                .role(u.getRole())
-                .createdAt(u.getCreatedAt())
-                .updatedAt(u.getUpdatedAt())
-                .build();
-        
-        return ResponseEntity.ok(new ApiResponse("Success", userDto, true));
+    public ResponseEntity<ApiResponse<UserDto>> getUserById(@PathVariable Long id) {
+        log.debug("Get user by id request: {}", id);
+        UserDto user = userService.getUserById(id);
+        return ResponseEntity.ok(
+            new ApiResponse<>("User retrieved successfully", user, true)
+        );
     }
     
     // UPDATE user
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(
+    public ResponseEntity<ApiResponse<UserDto>> updateUser(
             @PathVariable Long id,
-            @RequestBody UserDto userDto,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        String token = extractToken(authHeader);
-        if (!isAuthorized(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse("Unauthorized", null, false));
-        }
+            @Valid @RequestBody UpdateUserRequest request) {
+        log.debug("Update user request: {}", id);
         
-        Optional<User> userOpt = userRepository.findById(id);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse("User not found", null, false));
-        }
-        
-        User user = userOpt.get();
-        if (userDto.getFullName() != null) {
-            user.setFullName(userDto.getFullName());
-        }
-        if (userDto.getIsActive() != null) {
-            user.setIsActive(userDto.getIsActive());
-        }
-        
-        userRepository.save(user);
-        
-        UserDto updatedUserDto = UserDto.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .isActive(user.getIsActive())
-                .role(user.getRole())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
+        UserDto userDto = UserDto.builder()
+                .fullName(request.getFullName())
+                .isActive(request.getIsActive())
                 .build();
         
-        return ResponseEntity.ok(new ApiResponse("User updated successfully", updatedUserDto, true));
+        UserDto updatedUser = userService.updateUser(id, userDto);
+        return ResponseEntity.ok(
+            new ApiResponse<>("User updated successfully", updatedUser, true)
+        );
     }
     
     // DELETE user
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(
-            @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        String token = extractToken(authHeader);
-        if (!isAuthorized(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse("Unauthorized", null, false));
-        }
-        
-        Optional<User> user = userRepository.findById(id);
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse("User not found", null, false));
-        }
-        
-        userRepository.deleteById(id);
-        return ResponseEntity.ok(new ApiResponse("User deleted successfully", null, true));
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
+        log.debug("Delete user request: {}", id);
+        userService.deleteUser(id);
+        return ResponseEntity.ok(
+            new ApiResponse<>("User deleted successfully", null, true)
+        );
     }
 }

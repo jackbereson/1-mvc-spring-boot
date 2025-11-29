@@ -4,12 +4,17 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.*;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class AdminLoginRequest {
+    @NotBlank(message = "Username cannot be blank")
     private String username;
+    
+    @NotBlank(message = "Password cannot be blank")
+    @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
     private String password;
 }

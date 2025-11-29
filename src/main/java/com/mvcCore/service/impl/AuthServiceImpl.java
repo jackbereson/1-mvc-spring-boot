@@ -5,27 +5,31 @@ import com.mvcCore.dto.LoginRequest;
 import com.mvcCore.dto.AdminLoginRequest;
 import com.mvcCore.dto.RegisterRequest;
 import com.mvcCore.dto.UserDto;
+import com.mvcCore.exception.BadRequestException;
+import com.mvcCore.exception.UnauthorizedException;
+import com.mvcCore.mapper.UserMapper;
 import com.mvcCore.model.Role;
 import com.mvcCore.model.User;
 import com.mvcCore.repository.UserRepository;
 import com.mvcCore.service.AuthService;
 import com.mvcCore.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
+@Transactional
 public class AuthServiceImpl implements AuthService {
     
-    @Autowired
-    private UserRepository userRepository;
-    
-    @Autowired
-    private JwtUtil jwtUtil;
-    
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
     
     @Value("${admin.username}")
     private String adminUsername;
@@ -35,23 +39,26 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResponse register(RegisterRequest request) {
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            return AuthResponse.builder()
-                    .message("Email already exists")
-                    .build();
+        log.debug("Attempting to register user with email: {}", request.getEmail());
+        
+        if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("Registration failed: email already exists - {}", request.getEmail());
+            throw new BadRequestException("Email already exists");
         }
         
         User user = User.builder()
                 .email(request.getEmail())
                 .fullName(request.getFullName())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber())
                 .role(Role.USER)
                 .isActive(true)
                 .build();
         
         userRepository.save(user);
-        
         String token = jwtUtil.generateToken(user.getEmail());
+        
+        log.info("User registered successfully: {}", user.getEmail());
         
         return AuthResponse.builder()
                 .token(token)
@@ -63,27 +70,18 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResponse login(LoginRequest request) {
-        User user = null;
+        log.debug("Attempting to login user with email: {}", request.getEmail());
         
-        // Try login by email first
-        if (request.getEmail() != null) {
-            user = userRepository.findByEmail(request.getEmail())
-                    .orElse(null);
-        }
-        
-        // If not found and username provided, try by email using username as hint
-        if (user == null && request.getUsername() != null) {
-            user = userRepository.findByEmail(request.getUsername())
-                    .orElse(null);
-        }
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElse(null);
         
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            return AuthResponse.builder()
-                    .message("Invalid email or password")
-                    .build();
+            log.warn("Login failed: invalid email or password - {}", request.getEmail());
+            throw new UnauthorizedException("Invalid email or password");
         }
         
         String token = jwtUtil.generateToken(user.getEmail());
+        log.info("User logged in successfully: {}", user.getEmail());
         
         return AuthResponse.builder()
                 .token(token)
@@ -95,13 +93,15 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResponse adminLogin(AdminLoginRequest request) {
+        log.debug("Attempting admin login with username: {}", request.getUsername());
+        
         if (!adminUsername.equals(request.getUsername()) || !adminPassword.equals(request.getPassword())) {
-            return AuthResponse.builder()
-                    .message("Invalid admin credentials")
-                    .build();
+            log.warn("Admin login failed: invalid credentials");
+            throw new UnauthorizedException("Invalid admin credentials");
         }
         
         String token = jwtUtil.generateToken("admin_" + adminUsername);
+        log.info("Admin logged in successfully");
         
         return AuthResponse.builder()
                 .token(token)
@@ -112,7 +112,9 @@ public class AuthServiceImpl implements AuthService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public UserDto getMe(String token) {
+        log.debug("Fetching user info from token");
         String email = jwtUtil.extractUsername(token);
         
         // Check if it's an admin token
@@ -129,18 +131,11 @@ public class AuthServiceImpl implements AuthService {
                 .orElse(null);
         
         if (user == null) {
+            log.error("User not found: {}", email);
             return null;
         }
         
-        return UserDto.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .isActive(user.getIsActive())
-                .role(user.getRole())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
+        return userMapper.toDto(user);
     }
 }
 
