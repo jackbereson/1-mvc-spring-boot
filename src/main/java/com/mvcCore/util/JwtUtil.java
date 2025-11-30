@@ -77,14 +77,15 @@ public class JwtUtil {
      * <p>
      * Refresh tokens have a longer expiration time (default: 7 days)
      * and are used to obtain new access tokens without re-authentication.
+     * Uses user UUID as subject for consistency with access tokens.
      * </p>
      *
-     * @param username the username or identifier
+     * @param uuid the user's unique identifier
      * @return JWT refresh token string
      */
-    public String generateRefreshToken(String username) {
+    public String generateRefreshToken(String uuid) {
         String token = Jwts.builder()
-                .subject(username)
+                .subject(uuid)
                 .claim("type", "refresh")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))

@@ -74,7 +74,7 @@ public class AuthServiceImpl implements AuthService {
         
         userRepository.save(user);
         String token = jwtUtil.generateToken(user.getUuid(), user.getEmail(), user.getRole().name());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUuid());
         
         log.info("User registered successfully: {}", user.getEmail());
         
@@ -104,7 +104,7 @@ public class AuthServiceImpl implements AuthService {
         if (request.getUsername() != null && !request.getUsername().isEmpty()) {
             if (adminUsername.equals(request.getUsername()) && adminPassword.equals(request.getPassword())) {
                 String token = jwtUtil.generateToken("admin-uuid", "admin@system.local", "ADMIN");
-                String refreshToken = jwtUtil.generateRefreshToken("admin_" + adminUsername);
+                String refreshToken = jwtUtil.generateRefreshToken("admin-uuid");
                 log.info("Admin logged in successfully");
                 
                 return AuthResponse.builder()
@@ -134,7 +134,7 @@ public class AuthServiceImpl implements AuthService {
         }
         
         String token = jwtUtil.generateToken(user.getUuid(), user.getEmail(), user.getRole().name());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUuid());
         log.info("User logged in successfully: {}", user.getEmail());
         
         return AuthResponse.builder()
@@ -199,7 +199,7 @@ public class AuthServiceImpl implements AuthService {
         // Check if it's an admin token
         if ("admin-uuid".equals(uuid)) {
             String newToken = jwtUtil.generateToken("admin-uuid", "admin@system.local", "ADMIN");
-            String newRefreshToken = jwtUtil.generateRefreshToken("admin_" + adminUsername);
+            String newRefreshToken = jwtUtil.generateRefreshToken("admin-uuid");
             
             return AuthResponse.builder()
                     .token(newToken)
@@ -219,7 +219,7 @@ public class AuthServiceImpl implements AuthService {
         }
         
         String newToken = jwtUtil.generateToken(user.getUuid(), user.getEmail(), user.getRole().name());
-        String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getUuid());
         
         log.info("Token refreshed successfully for user: {}", uuid);
         

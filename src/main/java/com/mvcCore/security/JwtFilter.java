@@ -84,6 +84,13 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Skip validation for refresh endpoint to allow expired access tokens
+        String requestPath = request.getRequestURI();
+        if (requestPath.equals("/api/v1/auth/refresh")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = authHeader.substring(7);
 
         try {
