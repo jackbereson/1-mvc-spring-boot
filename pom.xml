@@ -90,6 +90,14 @@
             <version>1.5.5.Final</version>
         </dependency>
 
+        <!-- JSR305 for MapStruct annotation processing -->
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Bean Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

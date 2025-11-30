@@ -2,7 +2,6 @@ package com.mvcCore.service.impl;
 
 import com.mvcCore.dto.AuthResponse;
 import com.mvcCore.dto.LoginRequest;
-import com.mvcCore.dto.AdminLoginRequest;
 import com.mvcCore.dto.RegisterRequest;
 import com.mvcCore.dto.UserDto;
 import com.mvcCore.exception.BadRequestException;
@@ -20,6 +19,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Implementation of AuthService interface.
+ * <p>
+ * Handles authentication operations including user registration,
+ * login (both user and admin), profile retrieval, and token refresh.
+ * Uses JWT for token generation and BCrypt for password hashing.
+ * </p>
+ *
+ * @author MVC Core Team
+ * @version 1.0.0
+ * @since 1.0.0
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -37,6 +48,13 @@ public class AuthServiceImpl implements AuthService {
     @Value("${admin.password}")
     private String adminPassword;
     
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Validates that the email is not already in use, creates a new user
+     * with hashed password, and generates JWT tokens.
+     * </p>
+     */
     @Override
     public AuthResponse register(RegisterRequest request) {
         
@@ -55,20 +73,57 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         
         userRepository.save(user);
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(user.getUuid(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
         
         log.info("User registered successfully: {}", user.getEmail());
         
         return AuthResponse.builder()
                 .token(token)
+                .refreshToken(refreshToken)
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .message("Register successfully")
                 .build();
     }
     
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Supports two login modes:
+     * <ul>
+     *   <li>Admin login: uses username and password from application properties</li>
+     *   <li>User login: validates email and password against database</li>
+     * </ul>
+     * Generates JWT access and refresh tokens on successful authentication.
+     * </p>
+     */
     @Override
     public AuthResponse login(LoginRequest request) {
+        // Check if it's admin login
+        if (request.getUsername() != null && !request.getUsername().isEmpty()) {
+            if (adminUsername.equals(request.getUsername()) && adminPassword.equals(request.getPassword())) {
+                String token = jwtUtil.generateToken("admin-uuid", "admin@system.local", "ADMIN");
+                String refreshToken = jwtUtil.generateRefreshToken("admin_" + adminUsername);
+                log.info("Admin logged in successfully");
+                
+                return AuthResponse.builder()
+                        .token(token)
+                        .refreshToken(refreshToken)
+                        .email("admin@system.local")
+                        .fullName("Admin")
+                        .message("Login successfully")
+                        .build();
+            } else {
+                log.warn("Admin login failed: invalid credentials");
+                throw new UnauthorizedException("Invalid credentials");
+            }
+        }
+        
+        // Regular user login
+        if (request.getEmail() == null || request.getEmail().isEmpty()) {
+            throw new BadRequestException("Email is required for user login");
+        }
         
         User user = userRepository.findByEmail(request.getEmail())
                 .orElse(null);
@@ -78,43 +133,31 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Invalid email or password");
         }
         
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(user.getUuid(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
         log.info("User logged in successfully: {}", user.getEmail());
         
         return AuthResponse.builder()
                 .token(token)
+                .refreshToken(refreshToken)
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .message("Login successfully")
                 .build();
     }
     
-    @Override
-    public AuthResponse adminLogin(AdminLoginRequest request) {
-        
-        if (!adminUsername.equals(request.getUsername()) || !adminPassword.equals(request.getPassword())) {
-            log.warn("Admin login failed: invalid credentials");
-            throw new UnauthorizedException("Invalid admin credentials");
-        }
-        
-        String token = jwtUtil.generateToken("admin_" + adminUsername, "ADMIN");
-        log.info("Admin logged in successfully");
-        
-        return AuthResponse.builder()
-                .token(token)
-                .email("admin@system.local")
-                .fullName("Admin")
-                .message("Admin login successfully")
-                .build();
-    }
-    
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Returns a hardcoded admin profile for admin UUID,
+     * or retrieves regular user data from the database.
+     * </p>
+     */
     @Override
     @Transactional(readOnly = true)
-    public UserDto getMe(String token) {
-        String email = jwtUtil.extractUsername(token);
-        
+    public UserDto getMe(String uuid) {
         // Check if it's an admin token
-        if (email.startsWith("admin_")) {
+        if ("admin-uuid".equals(uuid)) {
             return UserDto.builder()
                     .email("admin@system.local")
                     .fullName("Admin")
@@ -122,16 +165,71 @@ public class AuthServiceImpl implements AuthService {
                     .isActive(true)
                     .build();
         }
+
+        log.info("Getting user profile for uuid: {}", uuid);
         
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByUuid(uuid)
                 .orElse(null);
         
         if (user == null) {
-            log.error("User not found: {}", email);
+            log.error("User not found with uuid: {}", uuid);
             return null;
         }
         
         return userMapper.toDto(user);
+    }
+    
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Validates the refresh token, extracts user information,
+     * and generates new access and refresh tokens. Handles both
+     * admin and regular user token refresh.
+     * </p>
+     */
+    @Override
+    public AuthResponse refreshToken(String refreshToken) {
+        if (!jwtUtil.validateToken(refreshToken)) {
+            log.warn("Refresh token validation failed");
+            throw new UnauthorizedException("Invalid or expired refresh token");
+        }
+        
+        String uuid = jwtUtil.extractUuid(refreshToken);
+        
+        // Check if it's an admin token
+        if ("admin-uuid".equals(uuid)) {
+            String newToken = jwtUtil.generateToken("admin-uuid", "admin@system.local", "ADMIN");
+            String newRefreshToken = jwtUtil.generateRefreshToken("admin_" + adminUsername);
+            
+            return AuthResponse.builder()
+                    .token(newToken)
+                    .refreshToken(newRefreshToken)
+                    .email("admin@system.local")
+                    .fullName("Admin")
+                    .message("Token refreshed successfully")
+                    .build();
+        }
+        
+        User user = userRepository.findByUuid(uuid)
+                .orElse(null);
+        
+        if (user == null || !user.getIsActive()) {
+            log.warn("User not found or inactive: {}", uuid);
+            throw new UnauthorizedException("User not found or inactive");
+        }
+        
+        String newToken = jwtUtil.generateToken(user.getUuid(), user.getEmail(), user.getRole().name());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+        
+        log.info("Token refreshed successfully for user: {}", uuid);
+        
+        return AuthResponse.builder()
+                .token(newToken)
+                .refreshToken(newRefreshToken)
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .message("Token refreshed successfully")
+                .build();
     }
 }
 

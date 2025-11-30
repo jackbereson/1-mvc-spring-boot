@@ -12,8 +12,9 @@ import jakarta.validation.constraints.*;
 @Builder
 public class LoginRequest {
     @Email(message = "Email should be valid")
-    @NotBlank(message = "Email cannot be blank")
     private String email;
+    
+    private String username;
     
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")

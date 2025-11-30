@@ -16,6 +16,18 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of UserService interface.
+ * <p>
+ * Provides concrete implementations for user management operations
+ * including retrieval, update, and deletion. Uses UserMapper for
+ * entity-DTO conversions and handles transactional operations.
+ * </p>
+ *
+ * @author MVC Core Team
+ * @version 1.0.0
+ * @since 1.0.0
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -25,6 +37,12 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Retrieves all users and maps them to DTOs using Java Streams.
+     * </p>
+     */
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
@@ -33,6 +51,12 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Uses Spring Data's Page interface for efficient pagination.
+     * </p>
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<UserDto> getAllUsers(Pageable pageable) {
@@ -40,6 +64,12 @@ public class UserServiceImpl implements UserService {
                 .map(userMapper::toDto);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Logs error if user not found.
+     * </p>
+     */
     @Override
     @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
@@ -51,6 +81,12 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDto(user);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Only updates non-null fields from the DTO. Logs successful updates.
+     * </p>
+     */
     @Override
     public UserDto updateUser(Long id, UserDto userDto) {
         User user = userRepository.findById(id)
@@ -71,6 +107,12 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDto(updatedUser);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Permanently deletes the user from the database. Logs successful deletions.
+     * </p>
+     */
     @Override
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)

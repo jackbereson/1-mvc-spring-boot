@@ -12,6 +12,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
+/**
+ * Security configuration for the application.
+ * <p>
+ * This class configures Spring Security with JWT-based authentication.
+ * It defines which endpoints are publicly accessible and which require authentication.
+ * Method-level security is enabled with {@code @PreAuthorize} annotations.
+ * </p>
+ *
+ * @author MVC Core Team
+ * @version 1.0.0
+ * @since 1.0.0
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -19,17 +31,49 @@ public class SecurityConfig {
     
     private final JwtFilter jwtFilter;
 
+    /**
+     * Constructor for SecurityConfig.
+     *
+     * @param jwtFilter the JWT filter for token validation
+     */
     public SecurityConfig(JwtFilter jwtFilter) {
         this.jwtFilter = jwtFilter;
     }
 
 
+    /**
+     * Provides a password encoder bean using BCrypt hashing algorithm.
+     * <p>
+     * BCrypt is a strong hashing function designed for password storage.
+     * It automatically handles salt generation and is computationally expensive
+     * to resist brute-force attacks.
+     * </p>
+     *
+     * @return BCryptPasswordEncoder instance
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
     
 
+    /**
+     * Configures the security filter chain.
+     * <p>
+     * This method sets up:
+     * <ul>
+     *   <li>CSRF protection (disabled for REST API)</li>
+     *   <li>CORS configuration (disabled)</li>
+     *   <li>Public endpoints: /api/auth/**, /api/v1/auth/**, /api/v1/health/**, /h2-console/**</li>
+     *   <li>All other endpoints require authentication</li>
+     *   <li>JWT filter added before standard authentication filter</li>
+     * </ul>
+     * </p>
+     *
+     * @param http the HttpSecurity to configure
+     * @return the configured SecurityFilterChain
+     * @throws Exception if configuration fails
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -39,13 +83,11 @@ public class SecurityConfig {
                         .requestMatchers(
                                 new AntPathRequestMatcher("/api/auth/**"),
                                 new AntPathRequestMatcher("/api/v1/auth/**"),
-                                new AntPathRequestMatcher("/api/v1/health/**"),
-                                new AntPathRequestMatcher("/h2-console/**")
+                                new AntPathRequestMatcher("/api/v1/health/**")
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

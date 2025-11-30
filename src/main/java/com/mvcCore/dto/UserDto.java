@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 public class UserDto {
     private Long id;
+    private String uuid;
     private String email;
     private String fullName;
     private Boolean isActive;

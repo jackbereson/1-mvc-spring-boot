@@ -12,10 +12,32 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Global exception handler for the application.
+ * <p>
+ * Centralizes exception handling across all controllers.
+ * Converts exceptions to standardized error responses with appropriate HTTP status codes.
+ * Logs errors for monitoring and debugging.
+ * </p>
+ *
+ * @author MVC Core Team
+ * @version 1.0.0
+ * @since 1.0.0
+ */
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
+    /**
+     * Handles ResourceNotFoundException.
+     * <p>
+     * Returns 404 NOT FOUND when requested resource doesn't exist.
+     * </p>
+     *
+     * @param ex the ResourceNotFoundException
+     * @param request the web request
+     * @return ResponseEntity with error details
+     */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(
             ResourceNotFoundException ex, WebRequest request) {
@@ -32,6 +54,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    /**
+     * Handles UnauthorizedException.
+     * <p>
+     * Returns 401 UNAUTHORIZED for authentication failures.
+     * </p>
+     *
+     * @param ex the UnauthorizedException
+     * @param request the web request
+     * @return ResponseEntity with error details
+     */
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(
             UnauthorizedException ex, WebRequest request) {
@@ -48,6 +80,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
+    /**
+     * Handles BadRequestException.
+     * <p>
+     * Returns 400 BAD REQUEST for invalid input or business logic violations.
+     * </p>
+     *
+     * @param ex the BadRequestException
+     * @param request the web request
+     * @return ResponseEntity with error details
+     */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(
             BadRequestException ex, WebRequest request) {
@@ -64,6 +106,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Handles validation errors from @Valid annotations.
+     * <p>
+     * Returns 400 BAD REQUEST with details about which fields failed validation.
+     * </p>
+     *
+     * @param ex the MethodArgumentNotValidException
+     * @param request the web request
+     * @return ResponseEntity with validation error details
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex, WebRequest request) {
@@ -86,6 +138,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Handles all unhandled exceptions.
+     * <p>
+     * Returns 500 INTERNAL SERVER ERROR for unexpected errors.
+     * Logs full exception details for debugging.
+     * </p>
+     *
+     * @param ex the Exception
+     * @param request the web request
+     * @return ResponseEntity with generic error message
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex, WebRequest request) {
