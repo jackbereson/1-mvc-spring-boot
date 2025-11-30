@@ -28,7 +28,7 @@ curl -X GET http://localhost:8080/api/v1/health
 
 ### Register User
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -40,7 +40,8 @@ curl -X POST http://localhost:8080/api/auth/register \
 **Response (201):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": 1,
     "email": "user@example.com",
@@ -50,13 +51,14 @@ curl -X POST http://localhost:8080/api/auth/register \
     "createdAt": "2025-11-27T10:00:00",
     "updatedAt": "2025-11-27T10:00:00"
   },
+  "message": "Register successfully",
   "success": true
 }
 ```
 
 ### Login User
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -67,7 +69,8 @@ curl -X POST http://localhost:8080/api/auth/login \
 **Response (200):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": 1,
     "email": "user@example.com",
@@ -77,20 +80,50 @@ curl -X POST http://localhost:8080/api/auth/login \
     "createdAt": "2025-11-27T10:00:00",
     "updatedAt": "2025-11-27T10:00:00"
   },
+  "message": "Login successfully",
+  "success": true
+}
+```
+
+### Refresh Access Token
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "fullName": "John Doe",
+    "role": "USER",
+    "isActive": true,
+    "createdAt": "2025-11-27T10:00:00",
+    "updatedAt": "2025-11-27T10:00:00"
+  },
+  "message": "Token refreshed successfully",
   "success": true
 }
 ```
 
 ### Get Current User Profile
 ```bash
-curl -X GET http://localhost:8080/api/auth/me \
-  -H "Authorization: Bearer <TOKEN>"
+curl -X GET http://localhost:8080/api/v1/auth/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 
 **Response (200):**
 ```json
 {
-  "message": "Success",
+  "code": 200,
+  "message": "User info retrieved successfully",
   "data": {
     "id": 1,
     "email": "user@example.com",
@@ -100,7 +133,8 @@ curl -X GET http://localhost:8080/api/auth/me \
     "createdAt": "2025-11-27T10:00:00",
     "updatedAt": "2025-11-27T10:00:00"
   },
-  "success": true
+  "success": true,
+  "timestamp": "2025-11-30T10:30:00"
 }
 ```
 
@@ -138,6 +172,7 @@ curl -X GET "http://localhost:8080/api/v1/users?page=1&size=15&sortBy=createdAt&
 **Response (200):**
 ```json
 {
+  "code": 200,
   "message": "Users retrieved successfully",
   "data": {
     "content": [
@@ -186,7 +221,8 @@ curl -X GET "http://localhost:8080/api/v1/users?page=1&size=15&sortBy=createdAt&
     "first": true,
     "empty": false
   },
-  "success": true
+  "success": true,
+  "timestamp": "2025-11-30T10:30:00"
 }
 ```
 
@@ -201,7 +237,8 @@ curl -X GET http://localhost:8080/api/v1/users/1 \
 **Response (200):**
 ```json
 {
-  "message": "Success",
+  "code": 200,
+  "message": "User retrieved successfully",
   "data": {
     "id": 1,
     "email": "user@example.com",
@@ -211,7 +248,8 @@ curl -X GET http://localhost:8080/api/v1/users/1 \
     "createdAt": "2025-11-27T10:00:00",
     "updatedAt": "2025-11-27T10:00:00"
   },
-  "success": true
+  "success": true,
+  "timestamp": "2025-11-30T10:30:00"
 }
 ```
 
@@ -231,6 +269,7 @@ curl -X PUT http://localhost:8080/api/v1/users/1 \
 **Response (200):**
 ```json
 {
+  "code": 200,
   "message": "User updated successfully",
   "data": {
     "id": 1,
@@ -241,7 +280,8 @@ curl -X PUT http://localhost:8080/api/v1/users/1 \
     "createdAt": "2025-11-27T10:00:00",
     "updatedAt": "2025-11-27T10:15:00"
   },
-  "success": true
+  "success": true,
+  "timestamp": "2025-11-30T10:30:00"
 }
 ```
 
@@ -256,9 +296,11 @@ curl -X DELETE http://localhost:8080/api/v1/users/1 \
 **Response (200):**
 ```json
 {
+  "code": 200,
   "message": "User deleted successfully",
   "data": null,
-  "success": true
+  "success": true,
+  "timestamp": "2025-11-30T10:30:00"
 }
 ```
 
@@ -266,11 +308,13 @@ curl -X DELETE http://localhost:8080/api/v1/users/1 \
 
 ## Authentication Notes
 
-- Replace `<TOKEN>` with the actual JWT token received from login/register
-- Replace `<ADMIN_TOKEN>` with a JWT token from an admin user
+- Replace `<ACCESS_TOKEN>` with the actual JWT access token received from login/register
+- Replace `<ADMIN_TOKEN>` with a JWT access token from an admin user
 - All user management endpoints (`/api/v1/users/**`) require ADMIN role
-- All endpoints that require authentication expect the token in the `Authorization` header with the format: `Bearer <TOKEN>`
-- The JWT token expires after the configured expiration time (default: 24 hours)
+- All endpoints that require authentication expect the token in the `Authorization` header with the format: `Bearer <ACCESS_TOKEN>`
+- The access token expires after the configured expiration time (default: 24 hours / 86400000ms)
+- The refresh token expires after 7 days (604800000ms)
+- Use the `/api/v1/auth/refresh` endpoint to get a new access token using your refresh token
 - If the token is invalid or expired, you'll receive a 401 Unauthorized response
 
 ---
@@ -280,27 +324,48 @@ curl -X DELETE http://localhost:8080/api/v1/users/1 \
 ### 401 Unauthorized
 ```json
 {
+  "code": "UNAUTHORIZED",
   "message": "Unauthorized",
-  "data": null,
-  "success": false
+  "status": 401,
+  "timestamp": "2025-11-30T10:30:00",
+  "path": "/api/v1/users",
+  "details": {}
+}
+```
+
+### 403 Forbidden (Access Denied)
+```json
+{
+  "code": "FORBIDDEN",
+  "message": "Access denied",
+  "status": 403,
+  "timestamp": "2025-11-30T10:30:00",
+  "path": "/api/v1/users",
+  "details": {}
 }
 ```
 
 ### 404 Not Found
 ```json
 {
+  "code": "NOT_FOUND",
   "message": "User not found",
-  "data": null,
-  "success": false
+  "status": 404,
+  "timestamp": "2025-11-30T10:30:00",
+  "path": "/api/v1/users/1",
+  "details": {}
 }
 ```
 
 ### 400 Bad Request (Registration failure)
 ```json
 {
+  "code": "BAD_REQUEST",
   "message": "Email already exists",
-  "data": null,
-  "success": false
+  "status": 400,
+  "timestamp": "2025-11-30T10:30:00",
+  "path": "/api/v1/auth/register",
+  "details": {}
 }
 ```
 
@@ -315,7 +380,7 @@ curl -X GET http://localhost:8080/api/v1/health
 
 ### 2. Register New User
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "testuser@example.com",
@@ -323,11 +388,11 @@ curl -X POST http://localhost:8080/api/auth/register \
     "fullName": "Test User"
   }'
 ```
-Save the token from the response.
+Save the accessToken and refreshToken from the response.
 
 ### 3. Login
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "testuser@example.com",
@@ -335,13 +400,22 @@ curl -X POST http://localhost:8080/api/auth/login \
   }'
 ```
 
-### 4. Get Current User
+### 4. Refresh Token
 ```bash
-curl -X GET http://localhost:8080/api/auth/me \
-  -H "Authorization: Bearer <TOKEN_FROM_LOGIN>"
+curl -X POST http://localhost:8080/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "<REFRESH_TOKEN_FROM_LOGIN>"
+  }'
 ```
 
-### 5. Get All Users (with Pagination)
+### 5. Get Current User
+```bash
+curl -X GET http://localhost:8080/api/v1/auth/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN_FROM_LOGIN>"
+```
+
+### 6. Get All Users (with Pagination)
 ```bash
 # Default pagination
 curl -X GET "http://localhost:8080/api/v1/users" \
@@ -352,7 +426,7 @@ curl -X GET "http://localhost:8080/api/v1/users?page=0&size=20&sortBy=email&sort
   -H "Authorization: Bearer <ADMIN_TOKEN>"
 ```
 
-### 6. Update User
+### 7. Update User
 ```bash
 curl -X PUT http://localhost:8080/api/v1/users/1 \
   -H "Authorization: Bearer <ADMIN_TOKEN>" \
@@ -373,8 +447,10 @@ For easier testing, you can import these requests into Postman or Insomnia by:
 2. Adding requests for each endpoint
 3. Setting environment variables for:
    - `BASE_URL`: http://localhost:8080
-   - `TOKEN`: (set this after login/register)
+   - `ACCESS_TOKEN`: (set this after login/register)
+   - `REFRESH_TOKEN`: (set this after login/register)
+   - `ADMIN_TOKEN`: (set this after admin login)
 
 Then reference these variables in your requests:
-- URL: `{{BASE_URL}}/api/users`
-- Header: `Authorization: Bearer {{TOKEN}}`
+- URL: `{{BASE_URL}}/api/v1/users`
+- Header: `Authorization: Bearer {{ACCESS_TOKEN}}`

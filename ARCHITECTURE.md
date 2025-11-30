@@ -65,15 +65,15 @@
 ```
 📁 AuthController.java
 ├── POST /api/v1/auth/register    → Đăng ký tài khoản mới
-├── POST /api/v1/auth/login       → Đăng nhập User
-├── POST /api/v1/auth/admin/login → Đăng nhập Admin
-└── GET  /api/v1/auth/me          → Lấy thông tin user hiện tại
+├── POST /api/v1/auth/login       → Đăng nhập User/Admin
+├── POST /api/v1/auth/refresh     → Làm mới access token
+└── GET  /api/v1/auth/me          → Lấy thông tin user hiện tại (cần token)
 ```
 
 **Chức năng chính:**
 - Xác nhận request (validation)
 - Gọi AuthService để xử lý
-- Trả về response với JWT Token
+- Trả về response với Access Token và Refresh Token
 
 ---
 
@@ -109,8 +109,8 @@
 interface AuthService {
     AuthResponse register(RegisterRequest request)
     AuthResponse login(LoginRequest request)
-    AuthResponse adminLogin(AdminLoginRequest request)
-    UserDto getMe(String token)
+    AuthResponse refreshToken(String refreshToken)
+    UserDto getMe(String uuid)
 }
 ```
 
@@ -121,23 +121,27 @@ Chức năng:
 │  ├─ Validate request (email, username không trùng)
 │  ├─ Mã hóa password (BCrypt)
 │  ├─ Lưu User vào Database
-│  └─ Generate JWT Token
+│  ├─ Generate Access Token (JWT)
+│  ├─ Generate Refresh Token (JWT)
+│  └─ Return AuthResponse {accessToken, refreshToken, user, message}
 │
 ├─ login()
-│  ├─ Tìm User bằng email/username
+│  ├─ Tìm User bằng email
 │  ├─ So sánh password (BCrypt)
-│  ├─ Generate JWT Token
-│  └─ Return AuthResponse
+│  ├─ Generate Access Token (JWT)
+│  ├─ Generate Refresh Token (JWT)
+│  └─ Return AuthResponse {accessToken, refreshToken, user, message}
 │
-├─ adminLogin()
-│  ├─ Tìm User có role = ADMIN
-│  ├─ Verify password
-│  ├─ Generate JWT Token (với role ADMIN)
-│  └─ Return AuthResponse
+├─ refreshToken(refreshToken)
+│  ├─ Validate refresh token
+│  ├─ Extract UUID từ refresh token
+│  ├─ Tìm User trong database
+│  ├─ Generate Access Token mới
+│  ├─ Generate Refresh Token mới
+│  └─ Return AuthResponse {accessToken, refreshToken, user, message}
 │
-└─ getMe(token)
-   ├─ Extract username từ JWT
-   ├─ Tìm User trong database
+└─ getMe(uuid)
+   ├─ Tìm User trong database bằng UUID
    └─ Return UserDto
 ```
 
@@ -296,16 +300,31 @@ Chức năng:
 
 **JWT Token Structure:**
 ```
+Access Token:
 Header: {
   "alg": "HS256",
   "typ": "JWT"
 }
 
 Payload: {
-  "sub": "john_doe",              // username
+  "sub": "user-uuid-here",        // user UUID
   "role": "ADMIN",
   "iat": 1701234567,              // issued at
-  "exp": 1701320967               // expiration
+  "exp": 1701320967               // expiration (24h)
+}
+
+Signature: HMACSHA256(header.payload, secret)
+
+Refresh Token:
+Header: {
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+Payload: {
+  "sub": "user-uuid-here",        // user UUID
+  "iat": 1701234567,              // issued at
+  "exp": 1701839367               // expiration (7 days)
 }
 
 Signature: HMACSHA256(header.payload, secret)
@@ -352,12 +371,12 @@ Các exception xử lý:
 
 #### 📍 DTOs (Data Transfer Objects)
 ```
-├─ UserDto           → Response User info
-├─ AuthResponse      → Response khi login/register (có token)
-├─ LoginRequest      → Request login
-├─ AdminLoginRequest → Request admin login
-├─ RegisterRequest   → Request register
-└─ UpdateUserRequest → Request update user
+├─ UserDto              → Response User info
+├─ AuthResponse         → Response khi login/register (có accessToken & refreshToken)
+├─ LoginRequest         → Request login
+├─ RegisterRequest      → Request register
+├─ RefreshTokenRequest  → Request refresh token
+└─ UpdateUserRequest    → Request update user
 ```
 
 #### 📍 UserMapper (MapStruct)
@@ -410,9 +429,10 @@ AuthServiceImpl
     ├─ userRepository.save(user)
     │
     ├─ Generate JWT token
-    │  └─ jwtUtil.generateToken(username, "USER")
+    │  ├─ jwtUtil.generateToken(user.getUuid(), "USER")
+    │  └─ jwtUtil.generateRefreshToken(user.getUuid())
     │
-    └─ return AuthResponse {token, user, message}
+    └─ return AuthResponse {accessToken, refreshToken, user, message}
     │
     ↓
 AuthController
@@ -424,14 +444,16 @@ CLIENT
     │
     └─ Nhận response:
        {
-         "token": "eyJhbGc...",
+         "accessToken": "eyJhbGc...",
+         "refreshToken": "eyJhbGc...",
          "user": {
            "id": 1,
            "username": "john_doe",
            "email": "john@example.com",
            "fullName": "John Doe"
          },
-         "message": "Register successfully"
+         "message": "Register successfully",
+         "success": true
        }
 ```
 
@@ -462,9 +484,10 @@ AuthServiceImpl
     │  └─ Nếu sai → throw UnauthorizedException
     │
     ├─ Generate JWT token
-    │  └─ jwtUtil.generateToken(username, role)
+    │  ├─ jwtUtil.generateToken(user.getUuid(), role)
+    │  └─ jwtUtil.generateRefreshToken(user.getUuid())
     │
-    └─ return AuthResponse {token, user, message}
+    └─ return AuthResponse {accessToken, refreshToken, user, message}
     │
     ↓
 AuthController
@@ -474,9 +497,10 @@ AuthController
     ↓
 CLIENT
     │
-    └─ Nhận response + JWT token
-       ├─ Lưu token vào localStorage/sessionStorage
-       └─ Dùng để gửi kèm trong header: "Authorization: Bearer <token>"
+    └─ Nhận response + JWT tokens
+       ├─ Lưu accessToken vào localStorage/sessionStorage
+       ├─ Lưu refreshToken vào localStorage (hoặc httpOnly cookie)
+       └─ Dùng accessToken để gửi kèm trong header: "Authorization: Bearer <accessToken>"
 ```
 
 ---
@@ -548,7 +572,57 @@ CLIENT
 
 ---
 
-### Flow 4: Lấy Thông Tin User (Get Me)
+### Flow 4: Refresh Token
+
+```
+CLIENT
+    │
+    ├─ POST /api/v1/auth/refresh
+    │  ├─ Body: {"refreshToken": "eyJhbGc..."}
+    │  └─ Header: "Content-Type: application/json"
+    │
+    ↓
+AuthController.refreshToken(RefreshTokenRequest)
+    │
+    ├─ Validate request (@Valid)
+    │
+    └─ authService.refreshToken(refreshToken)
+    │
+    ↓
+AuthServiceImpl.refreshToken(refreshToken)
+    │
+    ├─ jwtUtil.validateToken(refreshToken)
+    │  └─ Nếu invalid/expired → throw UnauthorizedException
+    │
+    ├─ Extract UUID từ refresh token
+    │  └─ String uuid = jwtUtil.extractUsername(refreshToken)
+    │
+    ├─ userRepository.findByUuid(uuid)
+    │  └─ Nếu không tìm thấy → throw UnauthorizedException
+    │
+    ├─ Generate new tokens
+    │  ├─ String newAccessToken = jwtUtil.generateToken(uuid, role)
+    │  └─ String newRefreshToken = jwtUtil.generateRefreshToken(uuid)
+    │
+    └─ return AuthResponse {accessToken, refreshToken, user, message}
+    │
+    ↓
+AuthController
+    │
+    └─ ResponseEntity.ok(response)
+    │
+    ↓
+CLIENT
+    │
+    └─ Nhận new tokens
+       ├─ Lưu accessToken mới
+       ├─ Lưu refreshToken mới
+       └─ Tiếp tục sử dụng
+```
+
+---
+
+### Flow 5: Lấy Thông Tin User (Get Me)
 
 ```
 CLIENT
@@ -562,30 +636,26 @@ JwtFilter
     └─ Skip (public endpoint /api/v1/auth/*) ✓
     │
     ↓
-AuthController.getMe(authHeader)
+AuthController.getMe()
     │
-    ├─ Validate header không null & starts with "Bearer "
+    ├─ Extract UUID từ SecurityContext
+    │  └─ String uuid = SecurityContextHolder.getContext().getAuthentication().getName()
+    │
+    ├─ Validate UUID không null/empty
     │  └─ Nếu invalid → throw UnauthorizedException
     │
-    ├─ Extract token: authHeader.substring(7)
-    │
-    ├─ jwtUtil.validateToken(token)
-    │  └─ Nếu invalid → throw UnauthorizedException
-    │
-    ├─ authService.getMe(token)
+    ├─ authService.getMe(uuid)
     │  │
     │  ↓
     │  AuthServiceImpl
     │  │
-    │  ├─ String username = jwtUtil.extractUsername(token)
-    │  │
-    │  ├─ userRepository.findByUsername(username)
+    │  ├─ userRepository.findByUuid(uuid)
     │  │
     │  ├─ userMapper.toDto(user)
     │  │
     │  └─ return UserDto
     │
-    └─ return ApiResponse {user, message}
+    └─ return ApiResponse {message, user, success, timestamp}
     │
     ↓
 CLIENT
@@ -758,15 +828,21 @@ CREATE INDEX idx_users_role ON users(role);
 │              PUBLIC ENDPOINTS (No Auth Needed)       │
 │  ├─ POST   /api/v1/auth/register                   │
 │  ├─ POST   /api/v1/auth/login                      │
-│  ├─ POST   /api/v1/auth/admin/login                │
-│  ├─ GET    /api/v1/auth/me       (Có token verify)  │
+│  ├─ POST   /api/v1/auth/refresh                    │
 │  └─ GET    /api/v1/health                          │
 └─────────────────────────────────────────────────────┘
 
                           ↓ 
                           
 ┌─────────────────────────────────────────────────────┐
-│           PROTECTED ENDPOINTS (Auth Required)        │
+│      AUTHENTICATED ENDPOINTS (Auth Required)         │
+│  └─ GET    /api/v1/auth/me        [USER/ADMIN]    │
+└─────────────────────────────────────────────────────┘
+
+                          ↓
+                          
+┌─────────────────────────────────────────────────────┐
+│           PROTECTED ENDPOINTS (ADMIN Only)           │
 │  ├─ GET    /api/v1/users          [ADMIN]          │
 │  ├─ GET    /api/v1/users/{id}     [ADMIN]          │
 │  ├─ PUT    /api/v1/users/{id}     [ADMIN]          │
@@ -821,12 +897,19 @@ Login verification:
 Configuration:
 ├─ Secret Key: 256-bit minimum (app.properties: jwt.secret)
 ├─ Algorithm: HS256 (HMAC SHA-256)
-├─ Expiration: 24 hours (app.properties: jwt.expiration)
+├─ Access Token Expiration: 24 hours (jwt.expiration: 86400000ms)
+├─ Refresh Token Expiration: 7 days (jwt.refresh-expiration: 604800000ms)
 └─ Claims:
-   ├─ sub (subject): username
+   Access Token:
+   ├─ sub (subject): user UUID
    ├─ role: USER hoặc ADMIN
    ├─ iat (issued at): timestamp tạo
    └─ exp (expiration): timestamp hết hạn
+   
+   Refresh Token:
+   ├─ sub (subject): user UUID
+   ├─ iat (issued at): timestamp tạo
+   └─ exp (expiration): timestamp hết hạn (7 days)
 
 Signature:
   HMACSHA256(header.payload, secret_key)
@@ -844,19 +927,25 @@ Verification:
 
 ```
 USER Role (Người dùng thường)
-├─ Có thể: Đăng ký, Đăng nhập, Lấy thông tin cá nhân
-├─ Không thể: Xem danh sách users, Cập nhật user khác
+├─ Có thể: Đăng ký, Đăng nhập, Lấy thông tin cá nhân, Refresh token
+├─ Không thể: Xem danh sách users, Cập nhật user khác, Xóa user
 └─ Endpoints:
-   └─ GET /api/v1/auth/me ✓
+   ├─ POST /api/v1/auth/register      ✓
+   ├─ POST /api/v1/auth/login         ✓
+   ├─ POST /api/v1/auth/refresh       ✓
+   └─ GET  /api/v1/auth/me            ✓
 
 ADMIN Role (Quản trị viên)
-├─ Có thể: Làm tất cả
+├─ Có thể: Làm tất cả + quản lý users
 ├─ Endpoints:
-   ├─ GET    /api/v1/users           ✓
-   ├─ GET    /api/v1/users/{id}      ✓
-   ├─ PUT    /api/v1/users/{id}      ✓
-   ├─ DELETE /api/v1/users/{id}      ✓
-   └─ GET    /api/v1/auth/me         ✓
+   ├─ POST /api/v1/auth/register      ✓
+   ├─ POST /api/v1/auth/login         ✓
+   ├─ POST /api/v1/auth/refresh       ✓
+   ├─ GET  /api/v1/auth/me            ✓
+   ├─ GET  /api/v1/users              ✓
+   ├─ GET  /api/v1/users/{id}         ✓
+   ├─ PUT  /api/v1/users/{id}         ✓
+   └─ DELETE /api/v1/users/{id}       ✓
 ```
 
 ---
