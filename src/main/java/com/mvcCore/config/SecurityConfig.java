@@ -1,44 +1,55 @@
 package com.mvcCore.config;
 
+import com.mvcCore.security.JwtAuthenticationEntryPoint;
 import com.mvcCore.security.JwtFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Security configuration for the application.
  * <p>
- * This class configures Spring Security with JWT-based authentication.
- * It defines which endpoints are publicly accessible and which require authentication.
- * Method-level security is enabled with {@code @PreAuthorize} annotations.
+ * This class configures Spring Security 6+ with JWT-based authentication
+ * following modern best practices (2024-2025).
+ * </p>
+ * <p>
+ * Key features:
+ * <ul>
+ *   <li>Stateless session management (no server-side sessions)</li>
+ *   <li>JWT-based authentication with custom filter</li>
+ *   <li>Public endpoints configured via permitAll()</li>
+ *   <li>Standardized error handling via AuthenticationEntryPoint</li>
+ *   <li>Method-level security enabled with @PreAuthorize</li>
+ * </ul>
  * </p>
  *
  * @author MVC Core Team
- * @version 1.0.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
 public class SecurityConfig {
     
     private final JwtFilter jwtFilter;
-
-    /**
-     * Constructor for SecurityConfig.
-     *
-     * @param jwtFilter the JWT filter for token validation
-     */
-    public SecurityConfig(JwtFilter jwtFilter) {
-        this.jwtFilter = jwtFilter;
-    }
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
 
     /**
@@ -58,16 +69,22 @@ public class SecurityConfig {
     
 
     /**
-     * Configures the security filter chain.
+     * Configures the security filter chain using Spring Security 6+ best practices.
      * <p>
-     * This method sets up:
+     * Configuration details:
      * <ul>
-     *   <li>CSRF protection (disabled for REST API)</li>
-     *   <li>CORS configuration (disabled)</li>
-     *   <li>Public endpoints: /api/auth/**, /api/v1/auth/**, /api/v1/health/**, /h2-console/**</li>
-     *   <li>All other endpoints require authentication</li>
-     *   <li>JWT filter added before standard authentication filter</li>
+     *   <li><b>CSRF:</b> Disabled (stateless REST API)</li>
+     *   <li><b>CORS:</b> Disabled (configure separately if needed)</li>
+     *   <li><b>Session Management:</b> Stateless (no server-side sessions)</li>
+     *   <li><b>Public endpoints:</b> /api/auth/**, /api/v1/auth/**, /api/v1/health/**</li>
+     *   <li><b>Protected endpoints:</b> All other requests require authentication</li>
+     *   <li><b>Exception handling:</b> Custom AuthenticationEntryPoint for 401 errors</li>
+     *   <li><b>JWT Filter:</b> Runs before standard authentication filter</li>
      * </ul>
+     * </p>
+     * <p>
+     * Note: Path-based access control is handled here via permitAll(),
+     * not in the JWT filter. This is the recommended Spring Security approach.
      * </p>
      *
      * @param http the HttpSecurity to configure
@@ -76,19 +93,50 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.disable())
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                new AntPathRequestMatcher("/api/auth/**"),
-                                new AntPathRequestMatcher("/api/v1/auth/**"),
-                                new AntPathRequestMatcher("/api/v1/health/**")
+                                "/api/auth/**",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/refresh",
+                                "/api/v1/health/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
 
-        return http.build();
+    /**
+     * Configures CORS (Cross-Origin Resource Sharing) settings.
+     * <p>
+     * Allows frontend application (localhost:3000) to make requests to the API.
+     * Configured to allow all common HTTP methods and headers.
+     * </p>
+     *
+     * @return CorsConfigurationSource with allowed origins, methods, and headers
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://127.0.0.1:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
