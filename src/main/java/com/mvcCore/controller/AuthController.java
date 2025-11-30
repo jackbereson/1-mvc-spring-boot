@@ -82,7 +82,7 @@ public class AuthController {
      * @return ResponseEntity with new authentication tokens
      * @throws com.mvcCore.exception.UnauthorizedException if refresh token is invalid or expired
      */
-    @PostMapping("/refresh-token")
+    @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         AuthResponse response = authService.refreshToken(request.getRefreshToken());
         return ResponseEntity.ok(response);
