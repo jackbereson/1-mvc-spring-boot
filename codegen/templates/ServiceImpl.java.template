@@ -1,0 +1,82 @@
+package com.coremvc.service.impl;
+
+import com.coremvc.dto.{{ENTITY_NAME}}Dto;
+import com.coremvc.exception.ResourceNotFoundException;
+import com.coremvc.mapper.{{ENTITY_NAME}}Mapper;
+import com.coremvc.model.{{ENTITY_NAME}};
+import com.coremvc.repository.{{ENTITY_NAME}}Repository;
+import com.coremvc.service.{{ENTITY_NAME}}Service;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class {{ENTITY_NAME}}ServiceImpl implements {{ENTITY_NAME}}Service {
+    private final {{ENTITY_NAME}}Repository {{ENTITY_LOWER}}Repository;
+    private final {{ENTITY_NAME}}Mapper {{ENTITY_LOWER}}Mapper;
+
+    @Override
+    public List<{{ENTITY_NAME}}Dto> getAll{{ENTITY_NAME}}s() {
+        return {{ENTITY_LOWER}}Repository.findAll().stream()
+                .map({{ENTITY_LOWER}}Mapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<{{ENTITY_NAME}}Dto> getAll{{ENTITY_NAME}}s(Pageable pageable) {
+        return {{ENTITY_LOWER}}Repository.findAll(pageable)
+                .map({{ENTITY_LOWER}}Mapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public {{ENTITY_NAME}}Dto get{{ENTITY_NAME}}ById(Long id) {
+        {{ENTITY_NAME}} {{ENTITY_LOWER}} = {{ENTITY_LOWER}}Repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("{{ENTITY_NAME}} not found"));
+
+        return {{ENTITY_LOWER}}Mapper.toDto({{ENTITY_LOWER}});
+    }
+
+    @Override
+    public {{ENTITY_NAME}}Dto create{{ENTITY_NAME}}({{ENTITY_NAME}}Dto {{ENTITY_LOWER}}Dto) {
+        {{ENTITY_NAME}} {{ENTITY_LOWER}} = {{ENTITY_LOWER}}Mapper.toEntity({{ENTITY_LOWER}}Dto);
+        {{ENTITY_NAME}} saved{{ENTITY_NAME}} = {{ENTITY_LOWER}}Repository.save({{ENTITY_LOWER}});
+        return {{ENTITY_LOWER}}Mapper.toDto(saved{{ENTITY_NAME}});
+    }
+
+    @Override
+    public {{ENTITY_NAME}}Dto update{{ENTITY_NAME}}(Long id, {{ENTITY_NAME}}Dto {{ENTITY_LOWER}}Dto) {
+        {{ENTITY_NAME}} existing{{ENTITY_NAME}} = {{ENTITY_LOWER}}Repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("{{ENTITY_NAME}} not found with id: " + id));
+
+        if ({{ENTITY_LOWER}}Dto.getName() != null) {
+            existing{{ENTITY_NAME}}.setName({{ENTITY_LOWER}}Dto.getName());
+        }
+        if ({{ENTITY_LOWER}}Dto.getIsActive() != null) {
+            existing{{ENTITY_NAME}}.setIsActive({{ENTITY_LOWER}}Dto.getIsActive());
+        }
+
+        {{ENTITY_NAME}} updated{{ENTITY_NAME}} = {{ENTITY_LOWER}}Repository.save(existing{{ENTITY_NAME}});
+        return {{ENTITY_LOWER}}Mapper.toDto(updated{{ENTITY_NAME}});
+    }
+
+    @Override
+    public void delete{{ENTITY_NAME}}(Long id) {
+        {{ENTITY_NAME}} {{ENTITY_LOWER}} = {{ENTITY_LOWER}}Repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("{{ENTITY_NAME}} not found with id: " + id));
+        {{ENTITY_LOWER}}Repository.delete({{ENTITY_LOWER}});
+    }
+
+    @Override
+    public Page<{{ENTITY_NAME}}Dto> search{{ENTITY_NAME}}sByName(String name, Pageable pageable) {
+        return {{ENTITY_LOWER}}Repository.findByNameContainingIgnoreCase(name, pageable)
+                .map({{ENTITY_LOWER}}Mapper::toDto);
+    }
+}

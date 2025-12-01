@@ -1,0 +1,16 @@
+package com.coremvc.repository;
+
+import com.coremvc.model.{{ENTITY_NAME}};
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface {{ENTITY_NAME}}Repository extends JpaRepository<{{ENTITY_NAME}}, Long> {
+    Optional<{{ENTITY_NAME}}> findById(Long id);
+    
+    Page<{{ENTITY_NAME}}> findByIsActiveTrue(Pageable pageable);
+    
+    Page<{{ENTITY_NAME}}> findByNameContainingIgnoreCase(String name, Pageable pageable);
+}

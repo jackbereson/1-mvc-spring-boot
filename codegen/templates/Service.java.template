@@ -1,0 +1,23 @@
+package com.coremvc.service;
+
+import com.coremvc.dto.{{ENTITY_NAME}}Dto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+
+public interface {{ENTITY_NAME}}Service {
+    List<{{ENTITY_NAME}}Dto> getAll{{ENTITY_NAME}}s();
+    
+    Page<{{ENTITY_NAME}}Dto> getAll{{ENTITY_NAME}}s(Pageable pageable);
+    
+    {{ENTITY_NAME}}Dto get{{ENTITY_NAME}}ById(Long id);
+    
+    {{ENTITY_NAME}}Dto create{{ENTITY_NAME}}({{ENTITY_NAME}}Dto {{ENTITY_LOWER}}Dto);
+    
+    {{ENTITY_NAME}}Dto update{{ENTITY_NAME}}(Long id, {{ENTITY_NAME}}Dto {{ENTITY_LOWER}}Dto);
+    
+    void delete{{ENTITY_NAME}}(Long id);
+    
+    Page<{{ENTITY_NAME}}Dto> search{{ENTITY_NAME}}sByName(String name, Pageable pageable);
+}

@@ -1,0 +1,97 @@
+package com.coremvc.controller;
+
+import com.coremvc.dto.ApiResponse;
+import com.coremvc.dto.{{ENTITY_NAME}}Dto;
+import com.coremvc.service.{{ENTITY_NAME}}Service;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/{{ENTITY_LOWER}}s")
+@CrossOrigin(origins= "*")
+@RequiredArgsConstructor
+public class {{ENTITY_NAME}}Controller {
+
+    private final {{ENTITY_NAME}}Service {{ENTITY_LOWER}}Service;
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Page<{{ENTITY_NAME}}Dto>>> getAll{{ENTITY_NAME}}s(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "ASC") String sortDirection) {
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("DESC")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Page<{{ENTITY_NAME}}Dto> {{ENTITY_LOWER}}s = {{ENTITY_LOWER}}Service.getAll{{ENTITY_NAME}}s(pageable);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>("{{ENTITY_NAME}}s retrieved successfully", {{ENTITY_LOWER}}s, true)
+        );
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<{{ENTITY_NAME}}Dto>> get{{ENTITY_NAME}}ById(@PathVariable Long id) {
+        {{ENTITY_NAME}}Dto {{ENTITY_LOWER}} = {{ENTITY_LOWER}}Service.get{{ENTITY_NAME}}ById(id);
+        return ResponseEntity.ok(
+                new ApiResponse<>("{{ENTITY_NAME}} retrieved successfully", {{ENTITY_LOWER}}, true)
+        );
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<{{ENTITY_NAME}}Dto>> create{{ENTITY_NAME}}(@Valid @RequestBody {{ENTITY_NAME}}Dto {{ENTITY_LOWER}}Dto) {
+        {{ENTITY_NAME}}Dto created{{ENTITY_NAME}} = {{ENTITY_LOWER}}Service.create{{ENTITY_NAME}}({{ENTITY_LOWER}}Dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                new ApiResponse<>("{{ENTITY_NAME}} created successfully", created{{ENTITY_NAME}}, true)
+        );
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<{{ENTITY_NAME}}Dto>> update{{ENTITY_NAME}}(
+            @PathVariable Long id,
+            @Valid @RequestBody {{ENTITY_NAME}}Dto {{ENTITY_LOWER}}Dto) {
+
+        {{ENTITY_NAME}}Dto updated{{ENTITY_NAME}} = {{ENTITY_LOWER}}Service.update{{ENTITY_NAME}}(id, {{ENTITY_LOWER}}Dto);
+        return ResponseEntity.ok(
+                new ApiResponse<>("{{ENTITY_NAME}} updated successfully", updated{{ENTITY_NAME}}, true)
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> delete{{ENTITY_NAME}}(@PathVariable Long id) {
+        {{ENTITY_LOWER}}Service.delete{{ENTITY_NAME}}(id);
+        return ResponseEntity.ok(
+                new ApiResponse<>("{{ENTITY_NAME}} deleted successfully", null, true)
+        );
+    }
+
+    @GetMapping("/search")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Page<{{ENTITY_NAME}}Dto>>> search{{ENTITY_NAME}}s(
+            @RequestParam String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<{{ENTITY_NAME}}Dto> {{ENTITY_LOWER}}s = {{ENTITY_LOWER}}Service.search{{ENTITY_NAME}}sByName(name, pageable);
+        return ResponseEntity.ok(
+                new ApiResponse<>("{{ENTITY_NAME}}s retrieved successfully", {{ENTITY_LOWER}}s, true)
+        );
+    }
+}

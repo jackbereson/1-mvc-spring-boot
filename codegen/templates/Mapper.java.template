@@ -1,0 +1,33 @@
+package com.coremvc.mapper;
+
+import com.coremvc.dto.{{ENTITY_NAME}}Dto;
+import com.coremvc.model.{{ENTITY_NAME}};
+import org.springframework.stereotype.Component;
+
+@Component
+public class {{ENTITY_NAME}}Mapper {
+    public {{ENTITY_NAME}}Dto toDto({{ENTITY_NAME}} {{ENTITY_LOWER}}) {
+        if ({{ENTITY_LOWER}} == null) {
+            return null;
+        }
+
+        return {{ENTITY_NAME}}Dto.builder()
+                .id({{ENTITY_LOWER}}.getId())
+                .name({{ENTITY_LOWER}}.getName())
+                .isActive({{ENTITY_LOWER}}.getIsActive())
+                .createdAt({{ENTITY_LOWER}}.getCreatedAt())
+                .updatedAt({{ENTITY_LOWER}}.getUpdatedAt())
+                .build();
+    }
+
+    public {{ENTITY_NAME}} toEntity({{ENTITY_NAME}}Dto {{ENTITY_LOWER}}Dto) {
+        if ({{ENTITY_LOWER}}Dto == null) {
+            return null;
+        }
+
+        return {{ENTITY_NAME}}.builder()
+                .name({{ENTITY_LOWER}}Dto.getName())
+                .isActive({{ENTITY_LOWER}}Dto.getIsActive())
+                .build();
+    }
+}
