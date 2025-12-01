@@ -281,7 +281,7 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
 # Logging
 logging.level.root=INFO
-logging.level.com.mvcCore=DEBUG
+logging.level.com.coremvc=DEBUG
 ```
 
 ## 📚 Documentation
