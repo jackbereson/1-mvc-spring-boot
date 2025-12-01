@@ -260,6 +260,235 @@ mvn test
 mvn test jacoco:report
 ```
 
+## ⚡ Quick Code Generation (Codegen)
+
+This project includes a powerful code generation script that automatically generates all layers of a complete REST API (Model, DTO, Repository, Mapper, Service, Controller) from templates.
+
+### 🎯 Features
+
+- ✅ Generates complete CRUD REST API in seconds
+- ✅ Creates 7 files: Entity, DTO, Repository, Mapper, Service, ServiceImpl, Controller
+- ✅ Auto-converts entity names to proper table names (e.g., `ProductCategory` → `product_categories`)
+- ✅ Interactive prompts for file replacement
+- ✅ Colored output with summary report
+- ✅ Follows project conventions and patterns
+
+### 🚀 Quick Start
+
+**Generate a new entity with full REST API:**
+
+```bash
+./codegen/generate.sh EntityName
+```
+
+**Example:**
+
+```bash
+./codegen/generate.sh Product
+# Generates: Model, DTO, Repository, Mapper, Service, ServiceImpl, Controller
+# API endpoint: /api/v1/products
+```
+
+```bash
+./codegen/generate.sh OrderItem
+# Generates: Model, DTO, Repository, Mapper, Service, ServiceImpl, Controller
+# API endpoint: /api/v1/orderItems
+# Table name: order_items
+```
+
+### 📋 What Gets Generated
+
+For entity `Product`, the script creates:
+
+```
+src/main/java/com/coremvc/
+├── model/Product.java                    # JPA Entity with table mapping
+├── dto/ProductDto.java                   # Data Transfer Object
+├── repository/ProductRepository.java      # JPA Repository interface
+├── mapper/ProductMapper.java             # MapStruct entity-DTO mapper
+├── service/ProductService.java           # Service interface
+├── service/impl/ProductServiceImpl.java  # Service implementation
+└── controller/ProductController.java     # REST API Controller
+```
+
+### 🎨 Generated Features
+
+Each generated entity includes:
+
+**Model (Entity):**
+- Extends `BaseEntity` (id, createdAt, updatedAt)
+- JPA annotations (`@Entity`, `@Table`)
+- Lombok annotations (`@Data`, `@Builder`)
+- Auto-generated table name
+
+**DTO:**
+- Clean data transfer object
+- Lombok annotations
+- JSON serialization ready
+
+**Repository:**
+- Extends `JpaRepository`
+- Custom query methods ready to add
+
+**Mapper:**
+- MapStruct interface
+- Entity ↔ DTO conversion methods
+- List conversion support
+
+**Service:**
+- CRUD operation interfaces
+- findAll, findById, create, update, delete
+
+**Service Implementation:**
+- Complete business logic
+- Exception handling
+- Transaction management
+
+**Controller:**
+- RESTful API endpoints
+- Standard API response format
+- Request validation
+- CRUD endpoints:
+  - `GET /api/v1/{entity}s` - Get all
+  - `GET /api/v1/{entity}s/{id}` - Get by ID
+  - `POST /api/v1/{entity}s` - Create
+  - `PUT /api/v1/{entity}s/{id}` - Update
+  - `DELETE /api/v1/{entity}s/{id}` - Delete
+
+### 📝 Usage Examples
+
+**1. Generate Settings Entity:**
+
+```bash
+./codegen/generate.sh Setting
+```
+
+Output:
+```
+🚀 Generating Spring Boot Entity: Setting
+📦 Package: com.coremvc
+📄 Table name: settings
+
+✓ Created Model
+✓ Created DTO
+✓ Created Repository
+✓ Created Mapper
+✓ Created Service Interface
+✓ Created Service Implementation
+✓ Created Controller
+
+✅ Generation completed!
+
+📊 Summary Report:
+  ✓ Created: 7 file(s)
+  🔄 Replaced: 0 file(s)
+  ↪ Skipped: 0 file(s)
+
+🎯 API Endpoints: /api/v1/settings
+```
+
+**2. Generate Category Entity:**
+
+```bash
+./codegen/generate.sh Category
+```
+
+**3. Replace Existing Entity:**
+
+If files already exist, you'll be prompted:
+
+```bash
+./codegen/generate.sh Product
+⚠️  File already exists: Model
+   Replace it? (y/n): y
+   ✓ Replaced Model
+```
+
+### 🔧 Customization
+
+After generation, you can customize the generated files:
+
+**1. Add Entity Fields:**
+
+Edit `model/{Entity}.java`:
+```java
+@Entity
+@Table(name = "products")
+public class Product extends BaseEntity {
+    private String name;
+    private String description;
+    private BigDecimal price;
+    private Integer stockQuantity;
+    // Add more fields as needed
+}
+```
+
+**2. Add Custom Queries:**
+
+Edit `repository/{Entity}Repository.java`:
+```java
+public interface ProductRepository extends JpaRepository<Product, Long> {
+    List<Product> findByNameContaining(String name);
+    List<Product> findByPriceBetween(BigDecimal minPrice, BigDecimal maxPrice);
+}
+```
+
+**3. Add Business Logic:**
+
+Edit `service/impl/{Entity}ServiceImpl.java`:
+```java
+public List<ProductDto> searchByName(String name) {
+    return productRepository.findByNameContaining(name)
+        .stream()
+        .map(productMapper::toDto)
+        .collect(Collectors.toList());
+}
+```
+
+**4. Add Custom Endpoints:**
+
+Edit `controller/{Entity}Controller.java`:
+```java
+@GetMapping("/search")
+public ApiResponse<List<ProductDto>> search(@RequestParam String name) {
+    return ApiResponse.success(productService.searchByName(name));
+}
+```
+
+### 📂 Template Location
+
+Templates are located in:
+```
+codegen/templates/
+├── Model.java.template
+├── Dto.java.template
+├── Repository.java.template
+├── Mapper.java.template
+├── Service.java.template
+├── ServiceImpl.java.template
+└── Controller.java.template
+```
+
+You can modify these templates to match your specific requirements.
+
+### ⚠️ Important Notes
+
+- **Entity Naming:** Use PascalCase (e.g., `Product`, `OrderItem`, `UserProfile`)
+- **Table Naming:** Auto-converted to snake_case plural (e.g., `products`, `order_items`, `user_profiles`)
+- **API Endpoints:** Auto-generated as `/api/v1/{entityLowerCase}s`
+- **Validation:** Add validation annotations to DTO fields after generation
+- **Relationships:** Add JPA relationships (`@ManyToOne`, `@OneToMany`) manually
+
+### 🎯 Next Steps After Generation
+
+1. ✅ Add entity fields and relationships
+2. ✅ Update DTO with validation annotations
+3. ✅ Add custom repository queries
+4. ✅ Implement business logic in service
+5. ✅ Add custom controller endpoints
+6. ✅ Run the application and test endpoints
+7. ✅ Write unit tests
+
 ## 🔧 Configuration
 
 ### application.properties
