@@ -1,8 +1,6 @@
 package com.mvcCore.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mvcCore.dto.RegisterRequest;
-import com.mvcCore.dto.UserDto;
 import com.mvcCore.dto.request.UpdateUserRequest;
 import com.mvcCore.model.Role;
 import com.mvcCore.model.User;
@@ -14,7 +12,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +23,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 /**
  * Integration Test for UserController - Tests FULL API FLOW
  * API → Controller → Service → Repository → H2 Database (in-memory)
- * 
  * This is a REAL integration test that:
  * - Uses H2 in-memory database (not mocked)
  * - Tests complete end-to-end flow
@@ -36,13 +32,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-    "admin.init=false"
-})
 @Transactional
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("UserController Integration Tests - Full API Flow")
