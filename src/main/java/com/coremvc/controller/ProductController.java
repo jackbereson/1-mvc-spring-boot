@@ -2,7 +2,6 @@ package com.coremvc.controller;
 
 import com.coremvc.dto.ApiResponse;
 import com.coremvc.dto.ProductDto;
-import com.coremvc.dto.request.UpdateUserRequest;
 import com.coremvc.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
