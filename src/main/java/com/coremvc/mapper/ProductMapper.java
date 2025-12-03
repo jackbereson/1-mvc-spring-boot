@@ -17,6 +17,7 @@ public class ProductMapper {
                 .price(product.getPrice())
                 .description(product.getDescription())
                 .category(product.getCategory())
+                .thumbnailUrl(product.getThumbnailUrl())
                 .isActive(product.getIsActive())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
@@ -29,11 +30,11 @@ public class ProductMapper {
         }
 
         return Product.builder()
-//                .id(productDto.getId())
                 .name(productDto.getName())
                 .price(productDto.getPrice())
                 .description(productDto.getDescription())
                 .category(productDto.getCategory())
+                .thumbnailUrl(productDto.getThumbnailUrl())
                 .isActive(productDto.getIsActive())
                 .build();
     }

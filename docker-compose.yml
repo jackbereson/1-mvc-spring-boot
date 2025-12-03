@@ -1,19 +1,21 @@
 version: '3.8'
 
 services:
-  # Spring Boot Application
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: mvc-app
-    environment:
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION: ${JWT_EXPIRATION}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mvc-redis
     ports:
-      - "8080:8080"
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis_data:
+    driver: local

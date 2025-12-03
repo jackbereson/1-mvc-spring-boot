@@ -7,6 +7,9 @@ import com.coremvc.model.Setting;
 import com.coremvc.repository.SettingRepository;
 import com.coremvc.service.SettingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ public class SettingServiceImpl implements SettingService {
     private final SettingMapper settingMapper;
 
     @Override
+    @Cacheable(value = "setting::list", key = "'all'")
     public List<SettingDto> getAllSettings() {
         return settingRepository.findAll().stream()
                 .map(settingMapper::toDto)
@@ -30,6 +34,7 @@ public class SettingServiceImpl implements SettingService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "setting::list", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<SettingDto> getAllSettings(Pageable pageable) {
         return settingRepository.findAll(pageable)
                 .map(settingMapper::toDto);
@@ -37,6 +42,7 @@ public class SettingServiceImpl implements SettingService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "settings", key = "#id")
     public SettingDto getSettingById(Long id) {
         Setting setting = settingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Setting not found"));
@@ -45,6 +51,7 @@ public class SettingServiceImpl implements SettingService {
     }
 
     @Override
+    @CacheEvict(value = {"settings", "setting::list"}, allEntries = true)
     public SettingDto createSetting(SettingDto settingDto) {
         Setting setting = settingMapper.toEntity(settingDto);
         Setting savedSetting = settingRepository.save(setting);
@@ -52,6 +59,8 @@ public class SettingServiceImpl implements SettingService {
     }
 
     @Override
+    @CachePut(value = "settings", key = "#id")
+    @CacheEvict(value = "setting::list", allEntries = true)
     public SettingDto updateSetting(Long id, SettingDto settingDto) {
         Setting existingSetting = settingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Setting not found with id: " + id));
@@ -68,6 +77,7 @@ public class SettingServiceImpl implements SettingService {
     }
 
     @Override
+    @CacheEvict(value = {"settings", "setting::list"}, allEntries = true)
     public void deleteSetting(Long id) {
         Setting setting = settingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Setting not found with id: " + id));
@@ -75,6 +85,7 @@ public class SettingServiceImpl implements SettingService {
     }
 
     @Override
+    @Cacheable(value = "setting::list", key = "'search:' + #name + ':' + #pageable.pageNumber")
     public Page<SettingDto> searchSettingsByName(String name, Pageable pageable) {
         return settingRepository.findByNameContainingIgnoreCase(name, pageable)
                 .map(settingMapper::toDto);

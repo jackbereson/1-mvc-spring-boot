@@ -1,4 +1,4 @@
-package com.coremvc.config;
+package com.coremvc.initializer;
 
 import com.coremvc.model.Role;
 import com.coremvc.model.User;

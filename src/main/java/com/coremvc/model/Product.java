@@ -1,14 +1,17 @@
 package com.coremvc.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "products")
+@Table(name = "products", indexes = {
+    @Index(name = "idx_product_category", columnList = "category"),
+    @Index(name = "idx_product_name", columnList = "name"),
+    @Index(name = "idx_product_is_active", columnList = "is_active"),
+    @Index(name = "idx_product_created_at", columnList = "created_at")
+})
 @Data
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
@@ -29,7 +32,7 @@ public class Product extends BaseEntity {
 
     private String thumbnailUrl;
 
-    @Column(columnDefinition = "boolean default true")
+    @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
 }

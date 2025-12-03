@@ -7,6 +7,9 @@ import com.coremvc.model.Category;
 import com.coremvc.repository.CategoryRepository;
 import com.coremvc.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryMapper categoryMapper;
 
     @Override
+    @Cacheable(value = "category::list", key = "'all'")
     public List<CategoryDto> getAllCategorys() {
         return categoryRepository.findAll().stream()
                 .map(categoryMapper::toDto)
@@ -30,6 +34,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "category::list", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<CategoryDto> getAllCategorys(Pageable pageable) {
         return categoryRepository.findAll(pageable)
                 .map(categoryMapper::toDto);
@@ -37,6 +42,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "categories", key = "#id")
     public CategoryDto getCategoryById(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
@@ -45,6 +51,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @CacheEvict(value = {"categories", "category::list"}, allEntries = true)
     public CategoryDto createCategory(CategoryDto categoryDto) {
         Category category = categoryMapper.toEntity(categoryDto);
         Category savedCategory = categoryRepository.save(category);
@@ -52,6 +59,8 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @CachePut(value = "categories", key = "#id")
+    @CacheEvict(value = "category::list", allEntries = true)
     public CategoryDto updateCategory(Long id, CategoryDto categoryDto) {
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
@@ -68,6 +77,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @CacheEvict(value = {"categories", "category::list"}, allEntries = true)
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
@@ -75,6 +85,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Cacheable(value = "category::list", key = "'search:' + #name + ':' + #pageable.pageNumber")
     public Page<CategoryDto> searchCategorysByName(String name, Pageable pageable) {
         return categoryRepository.findByNameContainingIgnoreCase(name, pageable)
                 .map(categoryMapper::toDto);

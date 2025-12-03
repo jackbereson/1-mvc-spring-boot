@@ -8,6 +8,9 @@ import com.coremvc.repository.UserRepository;
 import com.coremvc.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -41,10 +44,12 @@ public class UserServiceImpl implements UserService {
      * {@inheritDoc}
      * <p>
      * Retrieves all users and maps them to DTOs using Java Streams.
+     * Cached with short TTL for security.
      * </p>
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "users", key = "'all'")
     public List<UserDto> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(userMapper::toDto)
@@ -55,10 +60,12 @@ public class UserServiceImpl implements UserService {
      * {@inheritDoc}
      * <p>
      * Uses Spring Data's Page interface for efficient pagination.
+     * Cached with short TTL for security.
      * </p>
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "users", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<UserDto> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable)
                 .map(userMapper::toDto);
@@ -68,10 +75,12 @@ public class UserServiceImpl implements UserService {
      * {@inheritDoc}
      * <p>
      * Logs error if user not found.
+     * Cached with short TTL (7 min) for security.
      * </p>
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "users", key = "#id")
     public UserDto getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
@@ -85,9 +94,11 @@ public class UserServiceImpl implements UserService {
      * {@inheritDoc}
      * <p>
      * Only updates non-null fields from the DTO. Logs successful updates.
+     * Invalidates user cache on update.
      * </p>
      */
     @Override
+    @CachePut(value = "users", key = "#id")
     public UserDto updateUser(Long id, UserDto userDto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
@@ -111,9 +122,11 @@ public class UserServiceImpl implements UserService {
      * {@inheritDoc}
      * <p>
      * Permanently deletes the user from the database. Logs successful deletions.
+     * Invalidates user cache on delete.
      * </p>
      */
     @Override
+    @CacheEvict(value = "users", allEntries = true)
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
