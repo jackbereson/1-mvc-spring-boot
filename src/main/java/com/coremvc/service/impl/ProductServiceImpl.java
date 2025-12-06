@@ -1,11 +1,15 @@
 package com.coremvc.service.impl;
 
+import com.coremvc.config.SettingData;
 import com.coremvc.dto.ProductDto;
+import com.coremvc.dto.RestPage;
 import com.coremvc.exception.ResourceNotFoundException;
 import com.coremvc.mapper.ProductMapper;
 import com.coremvc.model.Product;
 import com.coremvc.repository.ProductRepository;
 import com.coremvc.service.ProductService;
+import com.coremvc.util.SettingConstants;
+import com.coremvc.util.SettingHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,8 +32,16 @@ public class ProductServiceImpl implements ProductService {
     @Cacheable(value = "product::page", key = "#pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort.toString()")
     public Page<ProductDto> getAllProducts(Pageable pageable) {
         log.info("Fetching paginated products from DATABASE (cache miss) - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
-        return productRepository.findAllOptimized(pageable)
+
+        // get Setting key Website here
+        var test = SettingHelper.loadStatic(SettingConstants.SettingKey.TITLE.getValue());
+
+        //print test
+        log.info("Test: {}", test);
+
+        Page<ProductDto> page = productRepository.findAllOptimized(pageable)
                 .map(productMapper::toDto);
+        return new RestPage<>(page.getContent(), pageable, page.getTotalElements());
     }
 
     @Override

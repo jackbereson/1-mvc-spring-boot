@@ -22,6 +22,26 @@ public class SettingController {
 
     private final SettingService settingService;
 
+    @GetMapping("/default")
+    public ResponseEntity<ApiResponse<Page<SettingDto>>> getDefaultSettings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "ASC") String sortDirection) {
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("DESC")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Page<SettingDto> settings = settingService.getAllSettings(pageable);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>("Settings retrieved successfully", settings, true)
+        );
+    }
+
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Page<SettingDto>>> getAllSettings(

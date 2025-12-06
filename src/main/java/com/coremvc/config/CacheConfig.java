@@ -1,5 +1,8 @@
 package com.coremvc.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -51,16 +54,34 @@ public class CacheConfig {
     }
 
     /**
+     * Create ObjectMapper with Java 8 date/time support
+     */
+    private ObjectMapper createRedisObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.activateDefaultTyping(
+                mapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.NON_FINAL
+        );
+        return mapper;
+    }
+
+    /**
      * L2 Cache: Redis distributed cache
      * Shared across instances, persistent
      */
     @Bean
     public RedisCacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
+        // Create serializer with JSR-310 support
+        GenericJackson2JsonRedisSerializer jsonSerializer = 
+                new GenericJackson2JsonRedisSerializer(createRedisObjectMapper());
+
         // Default cache configuration
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(15)) // Default TTL
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer))
                 .disableCachingNullValues(); // Don't cache null values
 
         // Per-cache TTL configurations

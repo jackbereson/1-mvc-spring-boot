@@ -13,6 +13,8 @@ public interface SettingService {
     
     SettingDto getSettingById(Long id);
     
+    SettingDto getSettingByKey(String key);
+    
     SettingDto createSetting(SettingDto settingDto);
     
     SettingDto updateSetting(Long id, SettingDto settingDto);

@@ -1,5 +1,6 @@
 package com.coremvc.service.impl;
 
+import com.coremvc.dto.RestPage;
 import com.coremvc.dto.SettingDto;
 import com.coremvc.exception.ResourceNotFoundException;
 import com.coremvc.mapper.SettingMapper;
@@ -36,8 +37,9 @@ public class SettingServiceImpl implements SettingService {
     @Transactional(readOnly = true)
     @Cacheable(value = "setting::list", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<SettingDto> getAllSettings(Pageable pageable) {
-        return settingRepository.findAll(pageable)
+        Page<SettingDto> page = settingRepository.findAll(pageable)
                 .map(settingMapper::toDto);
+        return new RestPage<>(page.getContent(), pageable, page.getTotalElements());
     }
 
     @Override
@@ -46,6 +48,16 @@ public class SettingServiceImpl implements SettingService {
     public SettingDto getSettingById(Long id) {
         Setting setting = settingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Setting not found"));
+
+        return settingMapper.toDto(setting);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "settings", key = "'key:' + #key")
+    public SettingDto getSettingByKey(String key) {
+        Setting setting = settingRepository.findByKey(key)
+                .orElseThrow(() -> new ResourceNotFoundException("Setting not found with key: " + key));
 
         return settingMapper.toDto(setting);
     }
@@ -87,7 +99,8 @@ public class SettingServiceImpl implements SettingService {
     @Override
     @Cacheable(value = "setting::list", key = "'search:' + #name + ':' + #pageable.pageNumber")
     public Page<SettingDto> searchSettingsByName(String name, Pageable pageable) {
-        return settingRepository.findByNameContainingIgnoreCase(name, pageable)
+        Page<SettingDto> page = settingRepository.findByNameContainingIgnoreCase(name, pageable)
                 .map(settingMapper::toDto);
+        return new RestPage<>(page.getContent(), pageable, page.getTotalElements());
     }
 }

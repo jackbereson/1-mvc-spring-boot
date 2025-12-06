@@ -19,7 +19,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * Security configuration for the application.
@@ -105,7 +104,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/refresh",
-                                "/api/v1/health/**"
+                                "/api/v1/health/**",
+                                "/api/v1/settings/default"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -1,0 +1,42 @@
+[
+  {
+    "type": "string",
+    "name": "Website Title",
+    "key": "TITLE",
+    "value": "XXXX",
+    "isActive": true,
+    "isPrivate": false
+  },
+  {
+    "type": "string",
+    "name": "Website Domain",
+    "key": "WEBSITE_DOMAIN",
+    "value": "https://apequick.com",
+    "isActive": true,
+    "isPrivate": false
+  },
+  {
+    "type": "string",
+    "name": "API Domain",
+    "key": "API_DOMAIN",
+    "value": "",
+    "isActive": true,
+    "isPrivate": false
+  },
+  {
+    "type": "string",
+    "name": "Media Domain",
+    "key": "MEDIA_DOMAIN",
+    "value": "",
+    "isActive": true,
+    "isPrivate": false
+  },
+  {
+    "type": "boolean",
+    "name": "Maintenance",
+    "key": "MAINTENANCE",
+    "value": "false",
+    "isActive": true,
+    "isPrivate": false
+  }
+]

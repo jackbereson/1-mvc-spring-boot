@@ -17,6 +17,18 @@ public class Setting extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private String type;
+
+    @Column(nullable = false)
+    private String key;
+
+    @Column(nullable = false)
+    private String value;
+
+    @Column(nullable = false)
+    private String isPrivate;
+
     @Column(columnDefinition = "boolean default true")
     @Builder.Default
     private Boolean isActive = true;

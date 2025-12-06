@@ -9,6 +9,8 @@ import java.util.Optional;
 
 public interface SettingRepository extends JpaRepository<Setting, Long> {
     Optional<Setting> findById(Long id);
+
+    Optional<Setting> findByKey(String key);
     
     Page<Setting> findByIsActiveTrue(Pageable pageable);
     

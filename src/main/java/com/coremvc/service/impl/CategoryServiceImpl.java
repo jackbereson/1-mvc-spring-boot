@@ -1,6 +1,7 @@
 package com.coremvc.service.impl;
 
 import com.coremvc.dto.CategoryDto;
+import com.coremvc.dto.RestPage;
 import com.coremvc.exception.ResourceNotFoundException;
 import com.coremvc.mapper.CategoryMapper;
 import com.coremvc.model.Category;
@@ -36,8 +37,9 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     @Cacheable(value = "category::list", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<CategoryDto> getAllCategorys(Pageable pageable) {
-        return categoryRepository.findAll(pageable)
+        Page<CategoryDto> page = categoryRepository.findAll(pageable)
                 .map(categoryMapper::toDto);
+        return new RestPage<>(page.getContent(), pageable, page.getTotalElements());
     }
 
     @Override
@@ -87,7 +89,8 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Cacheable(value = "category::list", key = "'search:' + #name + ':' + #pageable.pageNumber")
     public Page<CategoryDto> searchCategorysByName(String name, Pageable pageable) {
-        return categoryRepository.findByNameContainingIgnoreCase(name, pageable)
+        Page<CategoryDto> page = categoryRepository.findByNameContainingIgnoreCase(name, pageable)
                 .map(categoryMapper::toDto);
+        return new RestPage<>(page.getContent(), pageable, page.getTotalElements());
     }
 }

@@ -1,5 +1,6 @@
 package com.coremvc.service.impl;
 
+import com.coremvc.dto.RestPage;
 import com.coremvc.dto.UserDto;
 import com.coremvc.exception.ResourceNotFoundException;
 import com.coremvc.mapper.UserMapper;
@@ -67,8 +68,9 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     @Cacheable(value = "users", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<UserDto> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
+        Page<UserDto> page = userRepository.findAll(pageable)
                 .map(userMapper::toDto);
+        return new RestPage<>(page.getContent(), pageable, page.getTotalElements());
     }
 
     /**
