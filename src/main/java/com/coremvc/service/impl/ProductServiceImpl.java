@@ -80,8 +80,8 @@ public class ProductServiceImpl implements ProductService {
         if (productDto.getPrice() != null) {
             existingProduct.setPrice(productDto.getPrice());
         }
-        if (productDto.getCategory() != null) {
-            existingProduct.setCategory(productDto.getCategory());
+        if (productDto.getCategoryId() != null) {
+            existingProduct.setCategoryId(productDto.getCategoryId());
         }
         if (productDto.getThumbnailUrl() != null) {
             existingProduct.setThumbnailUrl(productDto.getThumbnailUrl());
@@ -103,8 +103,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<ProductDto> getProductsByCategory(String category, Pageable pageable) {
-        return productRepository.findByCategory(category, pageable).map(productMapper::toDto);
+    public Page<ProductDto> getProductsByCategoryId(Long categoryId, Pageable pageable) {
+        return productRepository.findByCategoryId(categoryId, pageable).map(productMapper::toDto);
     }
 
     @Override

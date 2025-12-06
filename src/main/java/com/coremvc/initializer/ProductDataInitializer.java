@@ -1,11 +1,14 @@
 package com.coremvc.initializer;
 
+import com.coremvc.model.Category;
 import com.coremvc.model.Product;
+import com.coremvc.repository.CategoryRepository;
 import com.coremvc.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -13,13 +16,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-// @Component
+@Component
 @Order(2)
 @RequiredArgsConstructor
 @Slf4j
 public class ProductDataInitializer implements CommandLineRunner {
 
     private final ProductRepository productRepository;
+
+    private final CategoryRepository categoryRepository;
 
     private static final String[] CATEGORIES = {
             "Electronics", "Fashion", "Home & Garden", "Sports", "Books",
@@ -57,15 +62,38 @@ public class ProductDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        categoryRepository.deleteAllInBatch();
+        productRepository.deleteAllInBatch();
+
         if (productRepository.count() >= 100000) {
             log.info("Products already initialized. Skipping...");
             return;
         }
 
+        
+
+        // add category data
+        log.info("Starting to Category...");
+        List<Category> categories = new ArrayList<>();
+        for (String category : CATEGORIES) {
+            log.info("Category: {}", category);
+            Category cat = Category.builder()
+                    .name(category)
+                    .description("Description for " + category)
+                    .build();
+            categories.add(cat);
+        }
+
+        categoryRepository.saveAll(categories);
+
         log.info("Starting to initialize 100000 products...");
         
         List<Product> products = new ArrayList<>();
         Random random = new Random();
+
+        List<Category> categoryList = categoryRepository.findAll();
+
+        
 
         for (int i = 1; i <= 100000; i++) {
             String adjective = ADJECTIVES[random.nextInt(ADJECTIVES.length)];
@@ -76,11 +104,16 @@ public class ProductDataInitializer implements CommandLineRunner {
             BigDecimal price = BigDecimal.valueOf(9.99 + (random.nextDouble() * 990.01))
                     .setScale(2, RoundingMode.HALF_UP);
 
+            var categoryEntity = categoryList.stream()
+                    .filter(cat -> cat.getName().equals(category))
+                    .findFirst()
+                    .orElse(null);
+
             Product product = Product.builder()
                     .name(adjective + " " + productType + " #" + i)
                     .description(description + " - Product ID: " + i)
                     .price(price)
-                    .category(category)
+                    .categoryId(categoryEntity != null ? categoryEntity.getId() : null)
                     .thumbnailUrl("https://picsum.photos/400/300?random=" + i)
                     .isActive(random.nextInt(100) < 95) // 95% active
                     .build();
@@ -100,5 +133,10 @@ public class ProductDataInitializer implements CommandLineRunner {
 
         log.info("Successfully initialized 100000 products!");
         log.info("Total products in database: {}", productRepository.count());
+    }
+
+    private void deleteAllInBatch() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'deleteAllInBatch'");
     }
 }

@@ -23,7 +23,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     })
     Page<Product> findAllOptimized(Pageable pageable);
     
-    Page<Product> findByCategory(String category, Pageable pageable);
+    Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
     Page<Product> findByIsActiveTrue(Pageable pageable);
 

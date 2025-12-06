@@ -14,97 +14,89 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
 @RequestMapping("/api/v1/products")
-@CrossOrigin(origins= "*")
+@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ProductController {
 
-    private final ProductService productService;
+        private final ProductService productService;
 
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Page<ProductDto>>> getAllProducts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "ASC") String sortDirection) {
+        @GetMapping("/category-id/{categoryId}")
+        public ResponseEntity<ApiResponse<Page<ProductDto>>> getProductsByCategoryId(
+                        @PathVariable Long categoryId,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
 
-        Sort.Direction direction = sortDirection.equalsIgnoreCase("DESC")
-                ? Sort.Direction.DESC
-                : Sort.Direction.ASC;
+                Pageable pageable = PageRequest.of(page, size);
+                Page<ProductDto> products = productService.getProductsByCategoryId(categoryId, pageable);
+                return ResponseEntity.ok(
+                                new ApiResponse<>("Products retrieved successfully", products, true));
+        }
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<ProductDto> products = productService.getAllProducts(pageable);
+        @GetMapping
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Page<ProductDto>>> getAllProducts(
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @RequestParam(defaultValue = "id") String sortBy,
+                        @RequestParam(defaultValue = "ASC") String sortDirection) {
 
-        return ResponseEntity.ok(
-                new ApiResponse<>("Users retrieved successfully", products, true)
-        );
-    }
+                Sort.Direction direction = sortDirection.equalsIgnoreCase("DESC")
+                                ? Sort.Direction.DESC
+                                : Sort.Direction.ASC;
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<ProductDto>> getProductById(@PathVariable Long id) {
-        ProductDto product = productService.getProductById(id);
-        return ResponseEntity.ok(
-                new ApiResponse<>("Product retrieved successfully", product, true)
-        );
-    }
+                Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+                Page<ProductDto> products = productService.getAllProducts(pageable);
 
-    @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<ProductDto>> createProduct(@RequestBody ProductDto productDto) {
-        ProductDto createdProduct = productService.createProduct(productDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                new ApiResponse<>("Product created successfully", createdProduct, true)
-        );
-    }
+                return ResponseEntity.ok(
+                                new ApiResponse<>("Users retrieved successfully", products, true));
+        }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<ProductDto>> updateProduct(
-            @PathVariable Long id,
-            @Valid @RequestBody ProductDto productDto) {
+        @GetMapping("/{id}")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<ProductDto>> getProductById(@PathVariable Long id) {
+                ProductDto product = productService.getProductById(id);
+                return ResponseEntity.ok(
+                                new ApiResponse<>("Product retrieved successfully", product, true));
+        }
 
-        ProductDto updatedProduct = productService.updateProduct(id, productDto);
-        return ResponseEntity.ok(
-                new ApiResponse<>("Product retrieved successfully", updatedProduct, true)
-        );
-    }
+        @PostMapping
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<ProductDto>> createProduct(@RequestBody ProductDto productDto) {
+                ProductDto createdProduct = productService.createProduct(productDto);
+                return ResponseEntity.status(HttpStatus.CREATED).body(
+                                new ApiResponse<>("Product created successfully", createdProduct, true));
+        }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
-        productService.deleteProduct(id);
-        return ResponseEntity.ok(
-                new ApiResponse<>("Product deleted successfully", null, true)
-        );
-    }
+        @PutMapping("/{id}")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<ProductDto>> updateProduct(
+                        @PathVariable Long id,
+                        @Valid @RequestBody ProductDto productDto) {
 
-    @GetMapping("/category/{category}")
-    public ResponseEntity<ApiResponse<Page<ProductDto>>> getProductsByCategory(
-            @PathVariable String category,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+                ProductDto updatedProduct = productService.updateProduct(id, productDto);
+                return ResponseEntity.ok(
+                                new ApiResponse<>("Product retrieved successfully", updatedProduct, true));
+        }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<ProductDto> products = productService.getProductsByCategory(category, pageable);
-        return ResponseEntity.ok(
-                new ApiResponse<>("Products retrieved successfully", products, true)
-        );
-    }
+        @DeleteMapping("/{id}")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
+                productService.deleteProduct(id);
+                return ResponseEntity.ok(
+                                new ApiResponse<>("Product deleted successfully", null, true));
+        }
 
-    @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<ProductDto>>> searchProducts(
-            @RequestParam String name,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+        @GetMapping("/search")
+        public ResponseEntity<ApiResponse<Page<ProductDto>>> searchProducts(
+                        @RequestParam String name,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<ProductDto> products = productService.searchProductsByName(name, pageable);
-        return ResponseEntity.ok(
-                new ApiResponse<>("Products retrieved successfully", products, true)
-        );
-    }
+                Pageable pageable = PageRequest.of(page, size);
+                Page<ProductDto> products = productService.searchProductsByName(name, pageable);
+                return ResponseEntity.ok(
+                                new ApiResponse<>("Products retrieved successfully", products, true));
+        }
 }
