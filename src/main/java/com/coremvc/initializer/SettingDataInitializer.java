@@ -4,6 +4,8 @@ import com.coremvc.config.SettingData;
 import com.coremvc.model.Setting;
 import com.coremvc.repository.SettingRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +13,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SettingDataInitializer implements CommandLineRunner {
     private final SettingRepository settingRepository;
+
+    @Value("${setting.init:false}")
+    private Boolean settingInit;
 
     @Override
     public void run(String... args) throws Exception {
@@ -20,6 +25,10 @@ public class SettingDataInitializer implements CommandLineRunner {
     }
 
     private void initializeSettings() {
+        if (!settingInit) {
+            return;
+        }
+        
         SettingData.getSettingData().forEach(item -> settingRepository.save(Setting.builder()
             .name(item.getName())
             .key(item.getKey())

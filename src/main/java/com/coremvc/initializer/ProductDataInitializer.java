@@ -6,6 +6,8 @@ import com.coremvc.repository.CategoryRepository;
 import com.coremvc.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -25,6 +27,10 @@ public class ProductDataInitializer implements CommandLineRunner {
     private final ProductRepository productRepository;
 
     private final CategoryRepository categoryRepository;
+
+
+    @Value("${product.init:false}")
+    private Boolean productInit;
 
     private static final String[] CATEGORIES = {
             "Electronics", "Fashion", "Home & Garden", "Sports", "Books",
@@ -62,15 +68,12 @@ public class ProductDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        categoryRepository.deleteAllInBatch();
-        productRepository.deleteAllInBatch();
-
-        if (productRepository.count() >= 100000) {
-            log.info("Products already initialized. Skipping...");
+        if (!productInit) {
             return;
         }
 
-        
+        categoryRepository.deleteAllInBatch();
+        productRepository.deleteAllInBatch();
 
         // add category data
         log.info("Starting to Category...");
