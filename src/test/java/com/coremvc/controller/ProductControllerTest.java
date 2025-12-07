@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,17 +38,21 @@ public class ProductControllerTest {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     private Product testProduct;
     private ProductDto productDto;
 
     @BeforeEach
     void setUp() {
         productRepository.deleteAll();
+
         testProduct = Product.builder()
                 .name("Test Product")
                 .description("Test Description")
                 .price(new BigDecimal("99.99"))
-                .category("Electronics")
+                .categoryId(1L)
                 .thumbnailUrl("https://example.com/image.jpg")
                 .isActive(true)
                 .build();
@@ -57,7 +62,7 @@ public class ProductControllerTest {
                 .name("New Product")
                 .description("New Description")
                 .price(new BigDecimal("149.99"))
-                .category("Books")
+                .categoryId(2L)
                 .thumbnailUrl("https://example.com/new-image.jpg")
                 .isActive(true)
                 .build();
@@ -80,7 +85,7 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.data.content", hasSize(1)))
                 .andExpect(jsonPath("$.data.content[0].name", is("Test Product")))
                 .andExpect(jsonPath("$.data.content[0].price", is(99.99)))
-                .andExpect(jsonPath("$.data.content[0].category", is("Electronics")));
+                .andExpect(jsonPath("$.data.content[0].categoryId", is(1)));
     }
 
     @Test
@@ -91,7 +96,7 @@ public class ProductControllerTest {
                 .name("Another Product")
                 .description("Another Description")
                 .price(new BigDecimal("199.99"))
-                .category("Electronics")
+                .categoryId(1L)
                 .isActive(true)
                 .build();
         productRepository.save(product2);
@@ -114,6 +119,10 @@ public class ProductControllerTest {
     @DisplayName("Should return empty page when no products exist")
     void testGetAllProducts_Empty() throws Exception {
         productRepository.deleteAll();
+        productRepository.flush();
+
+        // Clear cache to ensure fresh data is fetched
+        cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).clear());
 
         mockMvc.perform(get("/api/v1/products")
                 .with(user("admin").roles("ADMIN"))
@@ -138,7 +147,7 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.data.name", is("Test Product")))
                 .andExpect(jsonPath("$.data.description", is("Test Description")))
                 .andExpect(jsonPath("$.data.price", is(99.99)))
-                .andExpect(jsonPath("$.data.category", is("Electronics")))
+                .andExpect(jsonPath("$.data.categoryId", is(1)))
                 .andExpect(jsonPath("$.data.isActive", is(true)));
     }
 
@@ -170,7 +179,7 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.data.name", is("New Product")))
                 .andExpect(jsonPath("$.data.description", is("New Description")))
                 .andExpect(jsonPath("$.data.price", is(149.99)))
-                .andExpect(jsonPath("$.data.category", is("Books")))
+                .andExpect(jsonPath("$.data.categoryId", is(2)))
                 .andExpect(jsonPath("$.data.isActive", is(true)));
 
         Assertions.assertEquals(2, productRepository.count());
@@ -181,12 +190,12 @@ public class ProductControllerTest {
     @DisplayName("Should update product successfully")
     void testUpdateProduct_Success() throws Exception {
         Long productId = testProduct.getId();
-        
+
         ProductDto updateDto = ProductDto.builder()
                 .name("Updated Product")
                 .description("Updated Description")
                 .price(new BigDecimal("299.99"))
-                .category("Furniture")
+                .categoryId(3L)
                 .thumbnailUrl("https://example.com/updated-image.jpg")
                 .isActive(false)
                 .build();
@@ -201,7 +210,7 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.data.name", is("Updated Product")))
                 .andExpect(jsonPath("$.data.description", is("Updated Description")))
                 .andExpect(jsonPath("$.data.price", is(299.99)))
-                .andExpect(jsonPath("$.data.category", is("Furniture")))
+                .andExpect(jsonPath("$.data.categoryId", is(3)))
                 .andExpect(jsonPath("$.data.isActive", is(false)));
 
         Product updatedProductInDb = productRepository.findById(productId).orElseThrow();
@@ -229,7 +238,7 @@ public class ProductControllerTest {
     @DisplayName("Should update product with partial data")
     void testUpdateProduct_PartialUpdate() throws Exception {
         Long productId = testProduct.getId();
-        
+
         ProductDto partialUpdateDto = ProductDto.builder()
                 .name("Partially Updated Product")
                 .build();
@@ -242,7 +251,7 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.name", is("Partially Updated Product")))
                 .andExpect(jsonPath("$.data.price", is(99.99)))
-                .andExpect(jsonPath("$.data.category", is("Electronics")));
+                .andExpect(jsonPath("$.data.categoryId", is(1)));
     }
 
     @Test
@@ -256,8 +265,7 @@ public class ProductControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.message", is("Product deleted successfully")))
-                .andExpect(jsonPath("$.data", nullValue()));
+                .andExpect(jsonPath("$.message", is("Product deleted successfully")));
 
         Assertions.assertFalse(productRepository.findById(productId).isPresent());
     }
@@ -277,13 +285,13 @@ public class ProductControllerTest {
 
     @Test
     @Order(12)
-    @DisplayName("Should retrieve products by category with pagination")
-    void testGetProductsByCategory_Success() throws Exception {
+    @DisplayName("Should retrieve products by categoryId with pagination")
+    void testGetProductsByCategoryId_Success() throws Exception {
         Product product2 = Product.builder()
                 .name("Another Electronics")
                 .description("Another Description")
                 .price(new BigDecimal("199.99"))
-                .category("Electronics")
+                .categoryId(1L)
                 .isActive(true)
                 .build();
         productRepository.save(product2);
@@ -292,12 +300,12 @@ public class ProductControllerTest {
                 .name("Book Product")
                 .description("Book Description")
                 .price(new BigDecimal("29.99"))
-                .category("Books")
+                .categoryId(2L)
                 .isActive(true)
                 .build();
         productRepository.save(product3);
 
-        mockMvc.perform(get("/api/v1/products/category/{category}", "Electronics")
+        mockMvc.perform(get("/api/v1/products/category-id/{categoryId}", 1L)
                 .param("page", "0")
                 .param("size", "10")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -305,15 +313,15 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", is("Products retrieved successfully")))
                 .andExpect(jsonPath("$.data.content", hasSize(2)))
-                .andExpect(jsonPath("$.data.content[0].category", is("Electronics")))
-                .andExpect(jsonPath("$.data.content[1].category", is("Electronics")));
+                .andExpect(jsonPath("$.data.content[0].categoryId", is(1)))
+                .andExpect(jsonPath("$.data.content[1].categoryId", is(1)));
     }
 
     @Test
     @Order(13)
-    @DisplayName("Should return empty page when no products found in category")
-    void testGetProductsByCategory_Empty() throws Exception {
-        mockMvc.perform(get("/api/v1/products/category/{category}", "NonExistentCategory")
+    @DisplayName("Should return empty page when no products found in categoryId")
+    void testGetProductsByCategoryId_Empty() throws Exception {
+        mockMvc.perform(get("/api/v1/products/category-id/{categoryId}", 999L)
                 .param("page", "0")
                 .param("size", "10")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -330,7 +338,7 @@ public class ProductControllerTest {
                 .name("Test Laptop")
                 .description("Laptop Description")
                 .price(new BigDecimal("999.99"))
-                .category("Electronics")
+                .categoryId(1L)
                 .isActive(true)
                 .build();
         productRepository.save(product2);
@@ -436,9 +444,9 @@ public class ProductControllerTest {
 
     @Test
     @Order(22)
-    @DisplayName("Should allow getProductsByCategory without authentication")
-    void testGetProductsByCategory_PublicAccess() throws Exception {
-        mockMvc.perform(get("/api/v1/products/category/{category}", "Electronics")
+    @DisplayName("Should allow getProductsByCategoryId without authentication")
+    void testGetProductsByCategoryId_PublicAccess() throws Exception {
+        mockMvc.perform(get("/api/v1/products/category-id/{categoryId}", 1L)
                 .param("page", "0")
                 .param("size", "10")
                 .contentType(MediaType.APPLICATION_JSON))

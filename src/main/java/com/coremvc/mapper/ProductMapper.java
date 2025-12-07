@@ -34,6 +34,7 @@ public class ProductMapper {
                 .price(productDto.getPrice())
                 .description(productDto.getDescription())
                 .thumbnailUrl(productDto.getThumbnailUrl())
+                .categoryId(productDto.getCategoryId())
                 .isActive(productDto.getIsActive())
                 .build();
     }

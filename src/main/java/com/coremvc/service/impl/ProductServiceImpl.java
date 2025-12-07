@@ -1,6 +1,5 @@
 package com.coremvc.service.impl;
 
-import com.coremvc.config.SettingData;
 import com.coremvc.dto.ProductDto;
 import com.coremvc.dto.RestPage;
 import com.coremvc.exception.ResourceNotFoundException;

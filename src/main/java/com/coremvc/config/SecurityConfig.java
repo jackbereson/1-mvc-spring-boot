@@ -105,7 +105,10 @@ public class SecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/health/**",
-                                "/api/v1/settings/default"
+                                "/api/v1/settings/default",
+                                "/api/v1/paypal/webhook",
+                                "/api/v1/products/category-id/**",
+                                "/api/v1/products/search"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
